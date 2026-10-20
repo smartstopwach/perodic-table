@@ -1,19 +1,19 @@
 /**
  * Periodic Table Arena — Interactive Drag & Drop Chemistry Lab Engine
- * Supports:
- *   1. Live Check Mode (Instant Sahi / Galat feedback, combo streaks, smart hints)
- *   2. Exam Sheet Mode (Free fill, cell-to-cell drag/swap, batch Sahi/Galat check)
- *   3. Study Reference Mode (Full 118 table, live Kelvin/Celsius phase simulator, Bohr atom modal)
- *   + Desktop HTML5 Drag & Drop, Touch Drag Ghost, Click-to-Place, & Quick Slot Keyboard Entry
+ * Features:
+ *   - Live Check Mode (Instant Sahi / Galat feedback, combo streaks, progressive mnemonic hints)
+ *   - Exam Sheet Mode (Free fill, cell-to-cell drag/swap, batch Sahi/Galat grading)
+ *   - Study Reference Mode (Full 118 table, Kelvin/Celsius phase simulator, animated SVG Bohr models)
+ *   - Multi-Option & Custom Editable Desi Mnemonics Studio (3 presets per series + custom editor saved in localStorage)
+ *   - Android Phone & Tablet Fullscreen + 2D Scroll + Smart Touch-Drag Disambiguation
  */
 (function () {
   'use strict';
 
   const { ELEMENTS, CATEGORIES } = window.PERIODIC_DATA;
-  const MNEMONICS = window.MNEMONICS_DATA || { TABS: {}, BY_ELEMENT_Z: new Map() };
+  const MNEMONICS = window.MNEMONICS_DATA;
   const Sound = window.SoundFX;
 
-  // Lookup maps
   const BY_Z = new Map();
   const BY_SYMBOL = new Map();
   const BY_NAME = new Map();
@@ -24,14 +24,12 @@
     BY_NAME.set(el.name.toLowerCase(), el);
   });
 
-  // Group Roman/CAS labels for hover tooltips
   const GROUP_SUBLABELS = {
     1: 'IA', 2: 'IIA', 3: 'IIIB', 4: 'IVB', 5: 'VB', 6: 'VIB', 7: 'VIIB',
     8: 'VIIIB', 9: 'VIIIB', 10: 'VIIIB', 11: 'IB', 12: 'IIB',
     13: 'IIIA', 14: 'IVA', 15: 'VA', 16: 'VIA', 17: 'VIIA', 18: 'VIIIA'
   };
 
-  // Application State
   const state = {
     mode: 'live',          // 'live' | 'exam' | 'study'
     scope: 'all',          // 'all' | 'first20' | 'first36' | 'sp' | 'd' | 'f'
@@ -39,21 +37,24 @@
     tileClue: 'both',      // 'both' | 'symbol' | 'name' | 'config'
     deckMode: 'all',       // 'all' | 'wave'
     searchQuery: '',
-    activeCategory: null,  // category filter id or null
-    studyBlock: 'all',     // 'all' | 's' | 'p' | 'd' | 'f'
+    activeCategory: null,
+    studyBlock: 'all',
     studyTempK: 298,
 
     trayOrder: [],
+    trayCollapsed: false,
     solvedSet: new Set(),
     examPlacements: new Map(), // slotZ -> placedElementZ
-    examWrongSlots: new Set(), // slotZ values checked and found wrong
+    examWrongSlots: new Set(),
 
-    selectedTileZ: null,       // selected from tray for click-to-place
-    selectedSlotZ: null,       // clicked blank cell for quick input
+    selectedTileZ: null,
+    selectedSlotZ: null,
     hintTargetZ: null,
     lastInspectedZ: 1,
+
     mnemTab: 'd',
     mnemSelfTest: false,
+    editingSeriesId: null,
 
     wrongAttemptsPerZ: new Map(),
     mistakes: [],
@@ -65,8 +66,8 @@
     timerId: null
   };
 
-  // DOM References
   const dom = {
+    appShell: document.querySelector('.app-shell'),
     boardWrapper: document.querySelector('.board-wrapper'),
     grid: document.getElementById('periodicGrid'),
     trayDock: document.getElementById('trayDock'),
@@ -110,6 +111,7 @@
     btnDeckAll: document.getElementById('btnDeckAll'),
     btnDeckWave: document.getElementById('btnDeckWave'),
     btnShuffle: document.getElementById('btnShuffle'),
+    btnToggleTray: document.getElementById('btnToggleTray'),
 
     slotQuickModal: document.getElementById('slotQuickModal'),
     slotQuickForm: document.getElementById('slotQuickForm'),
@@ -134,19 +136,16 @@
     mnemonicsBody: document.getElementById('mnemonicsBody')
   };
 
-  // Cell & Axis lookup maps
-  const cellElements = new Map(); // z -> HTMLElement
-  const groupHeaders = new Map(); // group (1..18) -> HTMLElement
-  const periodHeaders = new Map(); // gridRow -> HTMLElement
+  const cellElements = new Map();
+  const groupHeaders = new Map();
+  const periodHeaders = new Map();
   let progressLabelEl = null;
   let progressFillEl = null;
   let hoverCoordEl = null;
-
-  // Current drag payload tracking
-  let dragPayload = null; // { z: number, fromSlotZ: number | null }
+  let dragPayload = null;
 
   /* ========================================================================
-     Scope, Position Helpers & Smart Chemistry Hints
+     Scope, Position Helpers & Dynamic Mnemonic Hints
      ======================================================================== */
 
   function isElementInScope(el, scope = state.scope) {
@@ -188,7 +187,7 @@
   }
 
   function buildSmartHint(el, wrongCountForEl) {
-    const mnem = MNEMONICS.BY_ELEMENT_Z.get(el.z);
+    const mnem = MNEMONICS ? MNEMONICS.getForElement(el.z) : null;
     if (wrongCountForEl >= 3) {
       return `Exact spot: ${positionLabel(el)} (${el.categoryLabel}, Z=${el.z}).`;
     }
@@ -215,8 +214,16 @@
     return copy;
   }
 
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   /* ========================================================================
-     Timer & Top Scoreboard Updates
+     Timer & Scoreboard
      ======================================================================== */
 
   function ensureTimerStarted() {
@@ -292,7 +299,7 @@
   }
 
   /* ========================================================================
-     Build Static Periodic Table Structure Once, Fast-Update Cell States
+     Build Periodic Table Grid Skeleton & Render Board/Tray
      ======================================================================== */
 
   function buildPeriodicGridSkeleton() {
@@ -301,7 +308,6 @@
     groupHeaders.clear();
     periodHeaders.clear();
 
-    // Top-left corner badge (row 1, col 1)
     const corner = document.createElement('div');
     corner.className = 'axis-period';
     corner.style.gridRow = '1';
@@ -310,7 +316,6 @@
     corner.title = 'Periods (rows 1–7) and Groups (columns 1–18)';
     dom.grid.appendChild(corner);
 
-    // Group column headers 1..18 (row 1, cols 2..19)
     for (let g = 1; g <= 18; g++) {
       const gh = document.createElement('div');
       gh.className = 'axis-group';
@@ -322,7 +327,6 @@
       groupHeaders.set(g, gh);
     }
 
-    // Period row headers 1..7 (rows 2..8, col 1)
     for (let p = 1; p <= 7; p++) {
       const ph = document.createElement('div');
       ph.className = 'axis-period';
@@ -334,7 +338,6 @@
       periodHeaders.set(p, ph);
     }
 
-    // F-block row labels (rows 10 & 11, cols 1..4)
     const lanthLabel = document.createElement('div');
     lanthLabel.className = 'fblock-label';
     lanthLabel.style.gridRow = '10';
@@ -351,11 +354,9 @@
     dom.grid.appendChild(actLabel);
     periodHeaders.set(10, actLabel);
 
-    // Bridge indicators at (Period 6, Group 3 -> row 7, col 4) and (Period 7, Group 3 -> row 8, col 4)
     createBridgeCell(7, 4, '57–71', 'La–Lu', 'lanthanide');
     createBridgeCell(8, 4, '89–103', 'Ac–Lr', 'actinide');
 
-    // Interactive Valley HUD inside natural Periodic Table gap (cols 4..14, rows 2..5)
     const valley = document.createElement('div');
     valley.className = 'valley-hud';
     valley.innerHTML = `
@@ -389,7 +390,6 @@
       legendGrid.appendChild(btn);
     });
 
-    // Create all 118 Element Cells
     ELEMENTS.forEach((el) => {
       const cell = document.createElement('div');
       cell.className = 'pt-cell empty';
@@ -399,11 +399,7 @@
       cell.dataset.group = String(el.group);
       cell.style.setProperty('--cell-cat-color', CATEGORIES[el.category].color);
 
-      // CSS Grid placement:
-      // Main rows 1..7 -> CSS rows 2..8
-      // Lanthanides (gridRow 9) -> CSS row 10
-      // Actinides (gridRow 10) -> CSS row 11
-      const cssRow = el.gridRow <= 7 ? el.gridRow + 1 : el.gridRow + 1;
+      const cssRow = el.gridRow + 1;
       const cssCol = el.gridCol + 1;
       cell.style.gridRow = String(cssRow);
       cell.style.gridColumn = String(cssCol);
@@ -422,17 +418,12 @@
     bridge.innerHTML = `<span>${rangeText}</span><strong>${symText}</strong>`;
     bridge.title = `Click to highlight ${targetCategory} series below`;
 
-    bridge.addEventListener('click', () => {
-      toggleCategoryFilter(targetCategory);
-    });
-
+    bridge.addEventListener('click', () => toggleCategoryFilter(targetCategory));
     bridge.addEventListener('dragover', (e) => {
       e.preventDefault();
       bridge.classList.add('drag-over');
     });
-    bridge.addEventListener('dragleave', () => {
-      bridge.classList.remove('drag-over');
-    });
+    bridge.addEventListener('dragleave', () => bridge.classList.remove('drag-over'));
     bridge.addEventListener('drop', (e) => {
       e.preventDefault();
       bridge.classList.remove('drag-over');
@@ -451,10 +442,6 @@
     dom.grid.appendChild(bridge);
   }
 
-  /* ========================================================================
-     Render All 118 Board Cells & Bottom Element Tray
-     ======================================================================== */
-
   function getPhaseAtTemp(el, tempK) {
     if (el.meltK === null) return el.phase.toLowerCase();
     if (tempK < el.meltK) return 'solid';
@@ -471,7 +458,6 @@
     const examPlacedZ = state.examPlacements.get(el.z);
     const isExamWrong = state.examWrongSlots.has(el.z);
 
-    // Reset dynamic state classes (keep transient wrong-flash if active)
     const keepFlash = cell.classList.contains('wrong-flash');
     cell.className = 'pt-cell';
     if (keepFlash) cell.classList.add('wrong-flash');
@@ -480,14 +466,12 @@
     if (state.hintTargetZ === el.z) cell.classList.add('hint-target');
     if (state.selectedSlotZ === el.z) cell.classList.add('slot-selected');
 
-    // Category / Block filter dimming
     const catMismatch = state.activeCategory && el.category !== state.activeCategory;
     const blockMismatch = state.mode === 'study' && state.studyBlock !== 'all' && el.block !== state.studyBlock;
     if (catMismatch || blockMismatch) {
       cell.classList.add('dimmed');
     }
 
-    // 1. STUDY MODE: Show complete interactive periodic table
     if (state.mode === 'study') {
       const phase = getPhaseAtTemp(el, state.studyTempK);
       cell.classList.add('study-cell');
@@ -503,7 +487,6 @@
       return;
     }
 
-    // 2. Out-of-scope slots in scoped quiz modes
     if (!inScope) {
       cell.classList.add('out-of-scope');
       cell.dataset.state = 'locked';
@@ -511,7 +494,6 @@
       return;
     }
 
-    // 3. Solved ("Sahi") Slot
     if (isSolved) {
       cell.classList.add('solved');
       cell.dataset.state = 'solved';
@@ -526,7 +508,6 @@
       return;
     }
 
-    // 4. Exam Mode Placed Tile (Unchecked or Checked Wrong)
     if (state.mode === 'exam' && examPlacedZ !== undefined) {
       const placedEl = BY_Z.get(examPlacedZ);
       cell.classList.add(isExamWrong ? 'exam-wrong' : 'exam-placed');
@@ -544,7 +525,6 @@
       return;
     }
 
-    // 5. Empty Blank Slot awaiting Drag & Drop
     cell.classList.add('empty');
     cell.dataset.state = 'empty';
     if (state.boardClue === 'categories') {
@@ -571,17 +551,18 @@
       return;
     }
     dom.trayDock.classList.remove('hidden');
+    dom.trayDock.classList.toggle('collapsed', state.trayCollapsed);
+    if (dom.btnToggleTray) {
+      dom.btnToggleTray.textContent = state.trayCollapsed ? '▲ Tray' : '▼ Tray';
+    }
 
-    // Elements currently placed on unverified Exam cells shouldn't duplicate in tray
     const placedInExamSet = new Set(state.examPlacements.values());
-
     const allRemaining = state.trayOrder
       .map((z) => BY_Z.get(z))
       .filter((el) => isElementInScope(el) && !state.solvedSet.has(el.z) && !placedInExamSet.has(el.z));
 
     dom.remainingCount.textContent = `${allRemaining.length} left`;
 
-    // Selected tile helper indicator
     if (state.selectedTileZ && BY_Z.get(state.selectedTileZ)) {
       const sel = BY_Z.get(state.selectedTileZ);
       dom.selectedTileBanner.classList.remove('hidden');
@@ -590,7 +571,6 @@
       dom.selectedTileBanner.classList.add('hidden');
     }
 
-    // Filter by category or search text
     const q = state.searchQuery.trim().toLowerCase();
     let visible = allRemaining.filter((el) => {
       if (state.activeCategory && el.category !== state.activeCategory) return false;
@@ -645,7 +625,7 @@
   }
 
   /* ========================================================================
-     Drag & Drop + Touch Drag + Click-to-Place Interactions
+     Drag & Drop + Android Smart Touch-Drag + Dual-Axis Auto-Panning
      ======================================================================== */
 
   function extractDraggedZ(e) {
@@ -672,8 +652,11 @@
     }
   }
 
+  function isTouchPrimary() {
+    return Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  }
+
   function bindTileEvents(tile, el) {
-    // Native HTML5 Drag from Tray
     tile.addEventListener('dragstart', (e) => {
       dragPayload = { z: el.z, fromSlotZ: null };
       if (e.dataTransfer) {
@@ -689,7 +672,6 @@
       dragPayload = null;
     });
 
-    // Click-to-Select (or place straight into an already-clicked blank slot!)
     tile.addEventListener('click', () => {
       if (state.selectedSlotZ !== null) {
         const targetSlotZ = state.selectedSlotZ;
@@ -702,7 +684,6 @@
       renderTray();
     });
 
-    // Mobile Touch Drag Support
     bindTouchDrag(tile, () => ({ z: el.z, fromSlotZ: null }), el.symbol);
   }
 
@@ -710,7 +691,6 @@
     cell.addEventListener('mouseenter', () => highlightAxes(slotEl, true));
     cell.addEventListener('mouseleave', () => highlightAxes(slotEl, false));
 
-    // Allow dragging an unverified tile FROM an Exam cell to another cell
     cell.addEventListener('dragstart', (e) => {
       if (state.mode !== 'exam') {
         e.preventDefault();
@@ -733,7 +713,6 @@
       dragPayload = null;
     });
 
-    // Drop target handlers
     cell.addEventListener('dragover', (e) => {
       if (state.mode === 'study') return;
       if (!isElementInScope(slotEl) || state.solvedSet.has(slotEl.z)) return;
@@ -758,9 +737,7 @@
       }
     });
 
-    // Click handler on cell
     cell.addEventListener('click', (e) => {
-      // Remove button on Exam mode card
       const removeBtn = e.target.closest('[data-remove-slot]');
       if (removeBtn) {
         e.stopPropagation();
@@ -768,7 +745,6 @@
         return;
       }
 
-      // Inspect solved or Study cell
       if (state.mode === 'study' || state.solvedSet.has(slotEl.z)) {
         openInspector(slotEl.z);
         return;
@@ -776,7 +752,6 @@
 
       if (!isElementInScope(slotEl)) return;
 
-      // If an element tile from tray is selected -> place it here!
       if (state.selectedTileZ !== null) {
         const chosenZ = state.selectedTileZ;
         state.selectedTileZ = null;
@@ -784,11 +759,9 @@
         return;
       }
 
-      // Otherwise open quick keyboard symbol popover for this empty slot!
       openQuickSlotPopover(slotEl, cell);
     });
 
-    // Touch drag for re-dragging placed tiles in Exam mode
     bindTouchDrag(
       cell,
       () => {
@@ -798,10 +771,6 @@
       },
       null
     );
-  }
-
-  function isTouchPrimary() {
-    return Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   }
 
   function bindTouchDrag(sourceNode, getPayloadFn, fixedLabel) {
@@ -817,28 +786,32 @@
     let rafId = null;
 
     function updateAutoScroll() {
-      if (!dragActive || !dom.boardWrapper) return;
-      const rect = dom.boardWrapper.getBoundingClientRect();
-      const edge = 52;
+      if (!dragActive) return;
+      const edge = 56;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
       let vx = 0;
       let vy = 0;
 
-      if (curY >= rect.top - 24 && curY <= rect.bottom + 24) {
-        if (curX < rect.left + edge) {
-          vx = -Math.min(11, Math.ceil((rect.left + edge - curX) / 5));
-        } else if (curX > rect.right - edge) {
-          vx = Math.min(11, Math.ceil((curX - (rect.right - edge)) / 5));
-        }
-        if (curY < rect.top + edge) {
-          vy = -Math.min(9, Math.ceil((rect.top + edge - curY) / 6));
-        } else if (curY > rect.bottom - edge) {
-          vy = Math.min(9, Math.ceil((curY - (rect.bottom - edge)) / 6));
-        }
+      if (curX < edge) {
+        vx = -Math.min(12, Math.ceil((edge - curX) / 5));
+      } else if (curX > vw - edge) {
+        vx = Math.min(12, Math.ceil((curX - (vw - edge)) / 5));
       }
 
-      if (vx !== 0 || vy !== 0) {
+      if (curY < edge) {
+        vy = -Math.min(11, Math.ceil((edge - curY) / 5));
+      } else if (curY > vh - edge) {
+        vy = Math.min(11, Math.ceil((curY - (vh - edge)) / 5));
+      }
+
+      if (vx !== 0 && dom.boardWrapper) {
         dom.boardWrapper.scrollLeft += vx;
-        dom.boardWrapper.scrollTop += vy;
+      }
+      if (vy !== 0 && dom.appShell) {
+        dom.appShell.scrollTop += vy;
+      }
+      if (vx !== 0 || vy !== 0) {
         refreshHoveredTarget(curX, curY);
       }
       rafId = requestAnimationFrame(updateAutoScroll);
@@ -904,14 +877,13 @@
         const dist = Math.hypot(dx, dy);
         if (dist < 8) return;
 
-        // If finger starts on the tray and swipes sideways, let native Android scroll run smoothly!
+        // Horizontal swipe on tray scrolls naturally without hijacking
         if (pendingPayload.fromSlotZ === null && Math.abs(dx) > Math.abs(dy) * 1.15) {
           gestureCanceled = true;
           pendingPayload = null;
           return;
         }
 
-        // Engage Touch Drag Mode!
         dragActive = true;
         const el = BY_Z.get(pendingPayload.z);
         sourceNode.classList.add('dragging');
@@ -954,7 +926,7 @@
   }
 
   /* ========================================================================
-     Core Placement & Validation Logic (Sahi / Galat Engine)
+     Sahi / Galat Placement Engine
      ======================================================================== */
 
   function handleDropAttempt(slotZ, placedZ, fromSlotZ = null) {
@@ -966,14 +938,12 @@
     ensureTimerStarted();
     closeQuickSlotPopover();
 
-    // EXAM MODE: Place or Swap freely without immediate lock until user clicks "Check"
     if (state.mode === 'exam') {
       if (fromSlotZ === slotZ) return;
 
       const existingInTarget = state.examPlacements.get(slotZ);
       if (fromSlotZ !== null) {
         if (existingInTarget !== undefined) {
-          // Swap two placed tiles!
           state.examPlacements.set(fromSlotZ, existingInTarget);
           state.examWrongSlots.delete(fromSlotZ);
           renderSingleCell(BY_Z.get(fromSlotZ));
@@ -999,7 +969,6 @@
       return;
     }
 
-    // LIVE CHECK MODE: Immediate Sahi (Right) or Galat (Wrong) verification!
     if (placedZ === slotZ) {
       const usedHint = state.hintTargetZ === slotZ;
       if (state.hintTargetZ === slotZ) state.hintTargetZ = null;
@@ -1028,7 +997,6 @@
       updateStatsUI();
       checkWinCondition();
     } else {
-      // WRONG ("GALAT") PLACEMENT!
       state.wrongCount += 1;
       state.streak = 0;
       state.score = Math.max(0, state.score - 15);
@@ -1043,7 +1011,6 @@
 
       Sound.wrong();
 
-      // Flash target slot crimson with visual wrong mark
       const cell = cellElements.get(slotZ);
       if (cell) {
         cell.classList.add('wrong-flash');
@@ -1164,13 +1131,12 @@
   }
 
   /* ========================================================================
-     Smart Hint, Quick Slot Keyboard Entry & Modals
+     Smart Hint, Quick Slot Entry & Bohr Inspector
      ======================================================================== */
 
   function triggerHint() {
     if (state.mode === 'study') return;
 
-    // Pick user's selected tile if any, otherwise first unplaced visible tile
     const placedInExamSet = new Set(state.examPlacements.values());
     let candidateZ = state.selectedTileZ;
 
@@ -1179,7 +1145,6 @@
         const el = BY_Z.get(z);
         return isElementInScope(el) && !state.solvedSet.has(z) && !placedInExamSet.has(z);
       });
-      // Or if all elements are sitting wrongly on Exam cells, hint first wrong cell's element
       if (remaining !== undefined) {
         candidateZ = remaining;
       } else if (state.examPlacements.size > 0) {
@@ -1199,18 +1164,20 @@
 
     const targetCell = cellElements.get(candidateZ);
     if (targetCell) {
-      targetCell.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      targetCell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     }
+
+    const mnem = MNEMONICS ? MNEMONICS.getForElement(el.z) : null;
+    const mnemSuffix = mnem ? ` · Trick word: "${mnem.word}"` : '';
 
     setFeedback(
       'hint',
       '💡 HINT',
-      `Selected ${el.symbol} (${el.name}): Watch the pulsing golden slot at ${positionLabel(el)} (${el.categoryLabel})!`
+      `Selected ${el.symbol} (${el.name}): Pulsing golden slot at ${positionLabel(el)}${mnemSuffix}!`
     );
   }
 
   function openQuickSlotPopover(slotEl, cellNode) {
-    // Tapping an already-selected blank cell a second time cancels cleanly
     if (state.selectedSlotZ === slotEl.z) {
       closeQuickSlotPopover();
       return;
@@ -1230,7 +1197,6 @@
     dom.slotQuickModal.classList.remove('hidden');
     dom.slotQuickField.value = '';
 
-    // Avoid auto-opening soft keyboard on Android/Tablet touchscreens unless user taps input directly!
     if (!isTouchPrimary()) {
       setTimeout(() => dom.slotQuickField.focus(), 10);
     } else {
@@ -1238,7 +1204,7 @@
       setFeedback(
         'neutral',
         'SLOT SELECTED',
-        `Selected ${positionLabel(slotEl)} — tap any element tile below to drop here, or type in the box!`
+        `Selected ${positionLabel(slotEl)} — tap any element tile below to place here, or tap the input box to type!`
       );
     }
   }
@@ -1253,10 +1219,6 @@
       dom.slotQuickModal.classList.add('hidden');
     }
   }
-
-  /* ========================================================================
-     SVG Bohr Atom Renderer & Inspector Modal
-     ======================================================================== */
 
   function buildBohrSVG(el) {
     const color = CATEGORIES[el.category].color;
@@ -1314,10 +1276,10 @@
     document.getElementById('inspFact').textContent = el.fact;
 
     const inspMnemEl = document.getElementById('inspMnemonic');
-    const mnemInfo = MNEMONICS.BY_ELEMENT_Z.get(el.z);
+    const mnemInfo = MNEMONICS ? MNEMONICS.getForElement(el.z) : null;
     if (inspMnemEl && mnemInfo) {
       inspMnemEl.classList.remove('hidden');
-      inspMnemEl.innerHTML = `<strong>🧠 ${mnemInfo.seriesBadge}:</strong> "${mnemInfo.word}" → <span>${mnemInfo.line}</span>`;
+      inspMnemEl.innerHTML = `<strong>🧠 ${escapeHtml(mnemInfo.seriesBadge)}:</strong> "${escapeHtml(mnemInfo.word)}" → <span>${escapeHtml(mnemInfo.line)}</span>`;
     } else if (inspMnemEl) {
       inspMnemEl.classList.add('hidden');
     }
@@ -1366,6 +1328,10 @@
     dom.mistakesBackdrop.classList.remove('hidden');
   }
 
+  /* ========================================================================
+     Multi-Option + Custom User-Editable Mnemonics Studio
+     ======================================================================== */
+
   function renderMnemonicsBody() {
     const tabData = MNEMONICS.TABS[state.mnemTab];
     if (!tabData || !dom.mnemonicsBody) return;
@@ -1383,9 +1349,28 @@
     }
 
     dom.mnemonicsBody.innerHTML = '';
-    tabData.series.forEach((s) => {
+
+    tabData.series.forEach((rawSeries) => {
+      const s = MNEMONICS.getResolvedSeries(rawSeries);
+      const isEditing = state.editingSeriesId === s.id;
       const card = document.createElement('div');
       card.className = 'mnem-series-card';
+      card.dataset.seriesId = s.id;
+
+      const optionPillsHtml = s.options
+        .map((opt, idx) => {
+          const isActive = s.activeChoice === idx;
+          return `<button type="button" class="mnem-opt-pill ${isActive ? 'active' : ''}" data-select-opt="${idx}" data-series="${s.id}">
+            ${isActive ? '✓ ' : ''}${escapeHtml(opt.label)}
+          </button>`;
+        })
+        .join('');
+
+      const customPillHtml = s.hasCustom
+        ? `<button type="button" class="mnem-opt-pill ${s.activeChoice === 'custom' ? 'active' : ''}" data-select-opt="custom" data-series="${s.id}">
+            ${s.activeChoice === 'custom' ? '✓ ' : ''}★ Mera Custom
+          </button>`
+        : '';
 
       const pairsHtml = s.pairs
         .map(
@@ -1393,21 +1378,138 @@
           <div class="mnem-chip ${state.mnemSelfTest ? 'masked' : ''}" data-mnem-z="${z}" title="Click to ${state.mnemSelfTest ? 'reveal symbol' : `inspect ${sym} (Z=${z})`}">
             <span class="mnem-chip-top">${z}</span>
             <span class="mnem-chip-sym">${sym}</span>
-            <span class="mnem-chip-word">${word}</span>
+            <span class="mnem-chip-word">${escapeHtml(word)}</span>
           </div>
         `
         )
         .join('');
 
+      let editorHtml = '';
+      if (isEditing) {
+        const draftLine = s.customEntry ? s.customEntry.line : s.line;
+        const draftWords = s.customEntry ? s.customEntry.words : s.pairs.map((p) => p[2]);
+
+        const wordBoxes = s.elements
+          .map(
+            ([sym, z], idx) => `
+            <label class="mnem-word-item">
+              <span>${z} · ${sym}</span>
+              <input type="text" data-word-idx="${idx}" value="${escapeHtml(draftWords[idx] || '')}" placeholder="${sym} word" />
+            </label>
+          `
+          )
+          .join('');
+
+        editorHtml = `
+          <div class="mnem-editor-box" data-editor-for="${s.id}">
+            <label class="mnem-editor-label">✏️ Apna Khud Ka Mnemonic Sentence Likho (Space se words apne aap neeche elements me bhar jayenge!):</label>
+            <div class="mnem-editor-row">
+              <input type="text" class="mnem-line-input" data-line-input="${s.id}" value="${escapeHtml(draftLine)}" placeholder="Type apna mnemonic sentence here..." />
+              <button type="button" class="chip-btn" data-auto-split="${s.id}">⚡ Auto-Split Words</button>
+            </div>
+            <div class="mnem-word-inputs">${wordBoxes}</div>
+            <div class="mnem-editor-actions">
+              ${s.hasCustom ? `<button type="button" class="action-btn ghost-btn" data-delete-custom="${s.id}">🗑️ Delete Custom</button>` : ''}
+              <button type="button" class="action-btn ghost-btn" data-cancel-edit="${s.id}">Cancel</button>
+              <button type="button" class="action-btn check-btn" data-save-custom="${s.id}">💾 Save &amp; Use My Mnemonic</button>
+            </div>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
-        <span class="mnem-series-badge">${s.badge}</span>
-        <p class="mnem-line">“${s.line}”</p>
+        <div class="mnem-card-head">
+          <span class="mnem-series-badge">${escapeHtml(s.badge)}</span>
+          <div class="mnem-options-bar">
+            ${optionPillsHtml}
+            ${customPillHtml}
+            <button type="button" class="mnem-edit-btn" data-toggle-edit="${s.id}">
+              ${isEditing ? '✕ Close Editor' : '✏️ Khud Likho / Edit'}
+            </button>
+          </div>
+        </div>
+        <p class="mnem-line">“${escapeHtml(s.line)}”</p>
         <div class="mnem-pairs">${pairsHtml}</div>
-        <p class="mnem-note">💡 ${s.note}</p>
+        ${editorHtml}
+        <p class="mnem-note">💡 ${escapeHtml(s.note)}</p>
       `;
+
       dom.mnemonicsBody.appendChild(card);
     });
 
+    // Wire option preset pills
+    dom.mnemonicsBody.querySelectorAll('[data-select-opt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const seriesId = btn.dataset.series;
+        const rawOpt = btn.dataset.selectOpt;
+        const choice = rawOpt === 'custom' ? 'custom' : parseInt(rawOpt, 10);
+        MNEMONICS.selectOption(seriesId, choice);
+        Sound.pickup();
+        renderMnemonicsBody();
+      });
+    });
+
+    // Wire Edit / Khud Likho toggle
+    dom.mnemonicsBody.querySelectorAll('[data-toggle-edit]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const seriesId = btn.dataset.toggleEdit;
+        state.editingSeriesId = state.editingSeriesId === seriesId ? null : seriesId;
+        Sound.pickup();
+        renderMnemonicsBody();
+      });
+    });
+
+    // Wire Live Sentence Auto-Split & Editor Save/Cancel/Delete buttons
+    if (state.editingSeriesId) {
+      const editorBox = dom.mnemonicsBody.querySelector(`[data-editor-for="${state.editingSeriesId}"]`);
+      if (editorBox) {
+        const lineInput = editorBox.querySelector(`[data-line-input="${state.editingSeriesId}"]`);
+        const wordInputs = [...editorBox.querySelectorAll('[data-word-idx]')];
+
+        const syncWordsFromSentence = () => {
+          const split = MNEMONICS.splitLineIntoWords(lineInput.value, wordInputs.length);
+          wordInputs.forEach((inp, idx) => {
+            inp.value = split[idx];
+          });
+        };
+
+        lineInput.addEventListener('input', syncWordsFromSentence);
+
+        const autoBtn = editorBox.querySelector('[data-auto-split]');
+        if (autoBtn) autoBtn.addEventListener('click', syncWordsFromSentence);
+
+        const cancelBtn = editorBox.querySelector('[data-cancel-edit]');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', () => {
+            state.editingSeriesId = null;
+            renderMnemonicsBody();
+          });
+        }
+
+        const delBtn = editorBox.querySelector('[data-delete-custom]');
+        if (delBtn) {
+          delBtn.addEventListener('click', () => {
+            MNEMONICS.deleteCustomMnemonic(state.editingSeriesId);
+            state.editingSeriesId = null;
+            Sound.pickup();
+            renderMnemonicsBody();
+          });
+        }
+
+        const saveBtn = editorBox.querySelector('[data-save-custom]');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', () => {
+            const customWords = wordInputs.map((inp) => inp.value.trim());
+            MNEMONICS.saveCustomMnemonic(state.editingSeriesId, lineInput.value, customWords);
+            state.editingSeriesId = null;
+            Sound.correct(2);
+            renderMnemonicsBody();
+          });
+        }
+      }
+    }
+
+    // Wire element chip click (Self-Test flip OR open Bohr Inspector)
     dom.mnemonicsBody.querySelectorAll('.mnem-chip').forEach((chip) => {
       chip.addEventListener('click', () => {
         const z = parseInt(chip.dataset.mnemZ, 10);
@@ -1425,12 +1527,13 @@
 
   function openMnemonicsModal(defaultTab = state.mnemTab) {
     state.mnemTab = defaultTab || 'd';
+    state.editingSeriesId = null;
     renderMnemonicsBody();
     dom.mnemonicsBackdrop.classList.remove('hidden');
   }
 
   /* ========================================================================
-     Mode Switching, Filters & Reset Controls
+     Mode Switching, Filters & Global Controls
      ======================================================================== */
 
   function setMode(newMode) {
@@ -1439,7 +1542,6 @@
     state.selectedTileZ = null;
     state.hintTargetZ = null;
 
-    // Return unverified exam cards cleanly if leaving Exam Mode
     if (newMode !== 'exam') {
       state.examPlacements.clear();
       state.examWrongSlots.clear();
@@ -1513,10 +1615,6 @@
     renderTray();
   }
 
-  /* ========================================================================
-     Wire UI Controls & Global Keyboard Shortcuts
-     ======================================================================== */
-
   function bindGlobalControls() {
     document.querySelectorAll('.mode-tab').forEach((tab) => {
       tab.addEventListener('click', () => setMode(tab.dataset.mode));
@@ -1539,6 +1637,7 @@
 
     dom.traySearch.addEventListener('input', () => {
       state.searchQuery = dom.traySearch.value;
+      if (state.trayCollapsed) state.trayCollapsed = false;
       renderTray();
     });
 
@@ -1562,6 +1661,14 @@
       renderTray();
     });
 
+    if (dom.btnToggleTray) {
+      dom.btnToggleTray.addEventListener('click', () => {
+        state.trayCollapsed = !state.trayCollapsed;
+        Sound.pickup();
+        renderTray();
+      });
+    }
+
     dom.btnCheckExam.addEventListener('click', checkExamSheet);
     if (dom.btnMnemonics) {
       dom.btnMnemonics.addEventListener('click', () => openMnemonicsModal(state.mnemTab));
@@ -1573,11 +1680,10 @@
       openInspector(state.lastInspectedZ);
     });
 
-    // Study Mode Controls
-    document.querySelectorAll('.block-pill').forEach((pill) => {
+    document.querySelectorAll('.block-pill[data-block]').forEach((pill) => {
       pill.addEventListener('click', () => {
         state.studyBlock = pill.dataset.block;
-        document.querySelectorAll('.block-pill').forEach((p) => p.classList.toggle('active', p === pill));
+        document.querySelectorAll('.block-pill[data-block]').forEach((p) => p.classList.toggle('active', p === pill));
         renderBoard();
       });
     });
@@ -1596,7 +1702,6 @@
       renderBoard();
     });
 
-    // Sound & Theme Toggles
     const updateSoundIcon = () => {
       dom.btnSound.textContent = Sound.isEnabled() ? '🔊' : '🔇';
     };
@@ -1634,14 +1739,12 @@
       syncThemeIcon();
     });
 
-    // Tap Selected Tile Banner to cancel selection cleanly
     dom.selectedTileBanner.addEventListener('click', () => {
       state.selectedTileZ = null;
       Sound.pickup();
       renderTray();
     });
 
-    // Mobile Full-Map vs Thumb-Zoom Toggle
     if (dom.btnZoomToggle) {
       dom.btnZoomToggle.addEventListener('click', () => {
         const isFit = dom.grid.classList.toggle('mobile-fit');
@@ -1651,7 +1754,6 @@
       });
     }
 
-    // Mobile Collapsible Scope & Clue Settings Bar
     if (dom.btnMobileFilters) {
       dom.btnMobileFilters.addEventListener('click', () => {
         const activePanel = state.mode === 'study' ? dom.studyControls : dom.playControls;
@@ -1661,23 +1763,22 @@
       });
     }
 
-    // Android / Tablet Fullscreen + Landscape App Mode Toggle
+    // Smooth Fullscreen Mode (preserves full 2D scrolling in both Portrait & Landscape!)
     if (dom.btnFullscreen) {
       dom.btnFullscreen.addEventListener('click', async () => {
         try {
-          if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-            if (screen.orientation && typeof screen.orientation.lock === 'function') {
-              screen.orientation.lock('landscape').catch(() => {});
-            }
-          } else {
-            await document.exitFullscreen();
+          const docEl = document.documentElement;
+          const reqFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+          const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (reqFs) await reqFs.call(docEl);
+          } else if (exitFs) {
+            await exitFs.call(document);
           }
         } catch (_) {}
       });
     }
 
-    // Quick Slot Keyboard Form Submit
     dom.slotQuickForm.addEventListener('submit', (e) => {
       e.preventDefault();
       if (state.selectedSlotZ === null) return;
@@ -1702,7 +1803,6 @@
 
     dom.btnCloseQuick.addEventListener('click', closeQuickSlotPopover);
 
-    // Modals Close Handlers
     dom.btnMistakes.addEventListener('click', openMistakesModal);
     dom.btnCloseInspector.addEventListener('click', () => dom.inspectorBackdrop.classList.add('hidden'));
     dom.btnCloseMistakes.addEventListener('click', () => dom.mistakesBackdrop.classList.add('hidden'));
@@ -1731,6 +1831,7 @@
     document.querySelectorAll('[data-mnem-tab]').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.mnemTab = btn.dataset.mnemTab;
+        state.editingSeriesId = null;
         Sound.pickup();
         renderMnemonicsBody();
       });
@@ -1749,7 +1850,6 @@
       });
     });
 
-    // Global Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeQuickSlotPopover();
@@ -1776,10 +1876,6 @@
       }
     });
   }
-
-  /* ========================================================================
-     Boot Application
-     ======================================================================== */
 
   function init() {
     state.trayOrder = shuffleArray(ELEMENTS.map((e) => e.z));

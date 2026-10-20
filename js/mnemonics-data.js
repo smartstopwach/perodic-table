@@ -1,91 +1,126 @@
 /**
- * Finalized Desi Hinglish Periodic Table Mnemonics Dataset
- * d-Block customized with user-selected B-B-A-B series choices:
- *   - 3d (Option B): "Suno Tum Vivaah Karlo Mujhse — Phir Koi Nahi Kahega Zanu!"
- *   - 4d (Option B): "Yeh Zindagi Nahi Mohabbat Teri — Ro-Ro kar Pukaregi Aaj Chandni!"
- *   - 5d (Option A): "La Haf-Ta Warna Re — Os Iron-rod se Pitai Aur Hogi!"
- *   - 6d (Option B): "Accha R.D. Sharma Book mein Hain Maths ke Difficult Rog-type Coins!"
+ * Multi-Option + Custom User-Editable Desi Periodic Table Mnemonics Engine
+ * - Every single Series & Group across s, p, d, and f blocks includes 3 built-in Desi Hinglish options!
+ * - Users can pick their favorite preset OR write/edit their own custom sentence + word-per-element mapping,
+ *   persisted permanently in localStorage ('pt_user_mnemonics_v2').
  */
 (function () {
   'use strict';
 
-  const MNEMONIC_TABS = {
+  const STORAGE_KEY = 'pt_user_mnemonics_v2';
+
+  // Helper to build compact preset entries cleanly
+  // symbols: [[sym, z], ...]
+  // options: [{ label, line, words: [...] }, ...]
+  const RAW_TABS = {
     d: {
       id: 'd',
-      tabLabel: 'd-Block (Row-wise 3d–6d)',
+      tabLabel: 'd-Block (Row 3d–6d)',
       practiceScope: 'd',
       practiceLabel: '🎯 Practice d-Block Now',
       series: [
         {
-          id: '3d',
+          id: 'd_3d',
           badge: '3d Series · Period 4 (Z = 21–30)',
-          line: 'Suno Tum Vivaah Karlo Mujhse — Phir Koi Nahi Kahega Zanu!',
-          note: 'Config Exceptions: Cr (24) = [Ar] 3d⁵ 4s¹ · Cu (29) = [Ar] 3d¹⁰ 4s¹',
-          pairs: [
-            ['Sc', 21, 'Suno'],
-            ['Ti', 22, 'Tum'],
-            ['V', 23, 'Vivaah'],
-            ['Cr', 24, 'Karlo'],
-            ['Mn', 25, 'Mujhse'],
-            ['Fe', 26, 'Phir'],
-            ['Co', 27, 'Koi'],
-            ['Ni', 28, 'Nahi'],
-            ['Cu', 29, 'Kahega'],
-            ['Zn', 30, 'Zanu']
+          note: 'Exceptions: Cr (24) = [Ar] 3d⁵ 4s¹ · Cu (29) = [Ar] 3d¹⁰ 4s¹',
+          elements: [
+            ['Sc', 21], ['Ti', 22], ['V', 23], ['Cr', 24], ['Mn', 25],
+            ['Fe', 26], ['Co', 27], ['Ni', 28], ['Cu', 29], ['Zn', 30]
+          ],
+          options: [
+            {
+              label: 'Option 1 (Filmy)',
+              line: 'Suno Tum Vivaah Karlo Mujhse — Phir Koi Nahi Kahega Zanu!',
+              words: ['Suno', 'Tum', 'Vivaah', 'Karlo', 'Mujhse', 'Phir', 'Koi', 'Nahi', 'Kahega', 'Zanu']
+            },
+            {
+              label: 'Option 2 (Kota Classic)',
+              line: 'Science Teacher Vineeta Criplani — Man Fenko Co Ni, Kyun Jaan!',
+              words: ['Science', 'Teacher', 'Vineeta', 'Criplani', 'Man', 'Fenko', 'Co', 'Ni', 'Kyun', 'Jaan']
+            },
+            {
+              label: 'Option 3 (Cricket Special)',
+              line: 'Sachin Tendulkar Very Crazy Man — Fer Coi Nahi Cup Jeetega!',
+              words: ['Sachin', 'Tendulkar', 'Very', 'Crazy', 'Man', 'Fer', 'Coi', 'Nahi', 'Cup', 'Jeetega']
+            }
           ]
         },
         {
-          id: '4d',
+          id: 'd_4d',
           badge: '4d Series · Period 5 (Z = 39–48)',
-          line: 'Yeh Zindagi Nahi Mohabbat Teri — Ro-Ro kar Pukaregi Aaj Chandni!',
           note: 'Special Note: Palladium (46 Pd) has ZERO 5s electrons → [Kr] 4d¹⁰!',
-          pairs: [
-            ['Y', 39, 'Yeh'],
-            ['Zr', 40, 'Zindagi'],
-            ['Nb', 41, 'Nahi'],
-            ['Mo', 42, 'Mohabbat'],
-            ['Tc', 43, 'Teri'],
-            ['Ru', 44, 'Ro-'],
-            ['Rh', 45, '-Ro kar'],
-            ['Pd', 46, 'Pukaregi'],
-            ['Ag', 47, 'Aaj'],
-            ['Cd', 48, 'Chandni']
+          elements: [
+            ['Y', 39], ['Zr', 40], ['Nb', 41], ['Mo', 42], ['Tc', 43],
+            ['Ru', 44], ['Rh', 45], ['Pd', 46], ['Ag', 47], ['Cd', 48]
+          ],
+          options: [
+            {
+              label: 'Option 1 (Bollywood)',
+              line: 'Yeh Zindagi Nahi Mohabbat Teri — Ro-Ro kar Pukaregi Aaj Chandni!',
+              words: ['Yeh', 'Zindagi', 'Nahi', 'Mohabbat', 'Teri', 'Ro-', '-Ro kar', 'Pukaregi', 'Aaj', 'Chandni']
+            },
+            {
+              label: 'Option 2 (Yaari Classic)',
+              line: 'Yaari Zara Nibhana Mout Tak — Rukawat Raah Pade Aage Kood Jaa!',
+              words: ['Yaari', 'Zara', 'Nibhana', 'Mout', 'Tak', 'Rukawat', 'Raah', 'Pade', 'Aage', 'Kood']
+            },
+            {
+              label: 'Option 3 (Funny Student)',
+              line: 'Yaar Zara Naam Bolo Mera —Tubelight Rozana Padhe Aaj क्लास-mein!',
+              words: ['Yaar', 'Zara', 'Naam-Bolo', 'Mera', 'Tubelight', 'Roz', 'Raat', 'Padhe', 'Aaj', 'Cadbury']
+            }
           ]
         },
         {
-          id: '5d',
+          id: 'd_5d',
           badge: '5d Series · Period 6 (Z = 57 La, 72–80)',
-          line: 'La Haf-Ta Warna Re — Os (Us) Iron-rod se Pitai Aur Hogi!',
           note: 'Exam Trap: La (57) ke baad 58–71 Lanthanides aate hain, isliye Hf seedha Z=72 se start hota hai!',
-          pairs: [
-            ['La', 57, 'La'],
-            ['Hf', 72, 'Haf-'],
-            ['Ta', 73, '-Ta'],
-            ['W', 74, 'Warna'],
-            ['Re', 75, 'Re'],
-            ['Os', 76, 'Os (Us)'],
-            ['Ir', 77, 'Iron-rod'],
-            ['Pt', 78, 'Pitai'],
-            ['Au', 79, 'Aur'],
-            ['Hg', 80, 'Hogi']
+          elements: [
+            ['La', 57], ['Hf', 72], ['Ta', 73], ['W', 74], ['Re', 75],
+            ['Os', 76], ['Ir', 77], ['Pt', 78], ['Au', 79], ['Hg', 80]
+          ],
+          options: [
+            {
+              label: 'Option 1 (Vasooli Hit)',
+              line: 'La Haf-Ta Warna Re — Os (Us) Iron-rod se Pitai Aur Hogi!',
+              words: ['La', 'Haf-', '-Ta', 'Warna', 'Re', 'Os (Us)', 'Iron-rod', 'Pitai', 'Aur', 'Hogi']
+            },
+            {
+              label: 'Option 2 (Irfan Style)',
+              line: 'La Hafta Warna Re Osama — Irfan Peetega Aur Hasega!',
+              words: ['La', 'Haf-', '-ta', 'Warna', 'Re', 'Osama', 'Irfan', 'Peetega', 'Aur', 'Hasega']
+            },
+            {
+              label: 'Option 3 (Foodie Trick)',
+              line: 'Lao Halwa Taza Warna Re — Ustad Irani Paratha Aur Hoga!',
+              words: ['Lao', 'Halwa', 'Taza', 'Warna', 'Re', 'Ustad', 'Irani', 'Paratha', 'Aur', 'Hoga']
+            }
           ]
         },
         {
-          id: '6d',
+          id: 'd_6d',
           badge: '6d Series · Period 7 (Z = 89 Ac, 104–112)',
-          line: 'Accha R.D. Sharma Book mein Hain Maths ke Difficult Rog-type Coins!',
           note: 'Exam Trap: Ac (89) ke baad 90–103 Actinides aate hain, isliye Rf seedha Z=104 se start hota hai!',
-          pairs: [
-            ['Ac', 89, 'Accha'],
-            ['Rf', 104, 'R.'],
-            ['Db', 105, 'D.'],
-            ['Sg', 106, 'Sharma'],
-            ['Bh', 107, 'Book'],
-            ['Hs', 108, 'Hain'],
-            ['Mt', 109, 'Maths'],
-            ['Ds', 110, 'Difficult'],
-            ['Rg', 111, 'Rog-type'],
-            ['Cn', 112, 'Coins']
+          elements: [
+            ['Ac', 89], ['Rf', 104], ['Db', 105], ['Sg', 106], ['Bh', 107],
+            ['Hs', 108], ['Mt', 109], ['Ds', 110], ['Rg', 111], ['Cn', 112]
+          ],
+          options: [
+            {
+              label: 'Option 1 (R.D. Sharma)',
+              line: 'Accha R.D. Sharma Book mein Hain Maths ke Difficult Rog-type Coins!',
+              words: ['Accha', 'R.', 'D.', 'Sharma', 'Book', 'Hain', 'Maths', 'Difficult', 'Rog-type', 'Coins']
+            },
+            {
+              label: 'Option 2 (Action Style)',
+              line: 'Accha Raftar Dabang Singham Bahut Hasmukh — Mat Das Rag-rag Chaunk!',
+              words: ['Accha', 'Raftar', 'Dabang', 'Singham', 'Bahut', 'Hasmukh', 'Mat', 'Das', 'Rag-rag', 'Chaunk']
+            },
+            {
+              label: 'Option 3 (Exact 2-Letter Match)',
+              line: 'Actually R-father Dubey Sang Bhajan Haste Mast — Dost Ragini Concert!',
+              words: ['Actually', 'R-father', 'Dubey', 'Sang', 'Bhajan', 'Haste', 'Mast', 'Dost', 'Ragini', 'Concert']
+            }
           ]
         }
       ]
@@ -93,167 +128,215 @@
 
     d_groups: {
       id: 'd_groups',
-      tabLabel: 'd-Block (Column-wise G3–G12)',
+      tabLabel: 'd-Block (Column G3–G12)',
       practiceScope: 'd',
       practiceLabel: '🎯 Practice d-Block Now',
       series: [
         {
-          id: 'g3',
-          badge: 'Group 3',
-          line: 'Scooter Yamaha La Activa',
-          note: 'Top to Bottom vertical column 3',
-          pairs: [['Sc', 21, 'Scooter'], ['Y', 39, 'Yamaha'], ['La', 57, 'La'], ['Ac', 89, 'Activa']]
+          id: 'dg_3',
+          badge: 'Group 3 (Top → Bottom)',
+          note: 'Sc · Y · La · Ac',
+          elements: [['Sc', 21], ['Y', 39], ['La', 57], ['Ac', 89]],
+          options: [
+            { label: 'Option 1', line: 'Scooter Yamaha La Activa!', words: ['Scooter', 'Yamaha', 'La', 'Activa'] },
+            { label: 'Option 2', line: 'Second Year Laye Ac!', words: ['Second', 'Year', 'Laye', 'Ac'] },
+            { label: 'Option 3', line: 'Sachin Yuvraj Lara Achhe!', words: ['Sachin', 'Yuvraj', 'Lara', 'Achhe'] }
+          ]
         },
         {
-          id: 'g4',
-          badge: 'Group 4',
-          line: 'Tea Zara Half Refill',
-          note: 'Top to Bottom vertical column 4',
-          pairs: [['Ti', 22, 'Tea'], ['Zr', 40, 'Zara'], ['Hf', 72, 'Half'], ['Rf', 104, 'Refill']]
+          id: 'dg_4',
+          badge: 'Group 4 (Top → Bottom)',
+          note: 'Ti · Zr · Hf · Rf',
+          elements: [['Ti', 22], ['Zr', 40], ['Hf', 72], ['Rf', 104]],
+          options: [
+            { label: 'Option 1', line: 'Tea Zara Half Refill!', words: ['Tea', 'Zara', 'Half', 'Refill'] },
+            { label: 'Option 2', line: 'Tum Zara Hafta Rafa-dafa karo!', words: ['Tum', 'Zara', 'Hafta', 'Rafa-dafa'] },
+            { label: 'Option 3', line: 'Tiger Zinda Hai Raftaar!', words: ['Tiger', 'Zinda', 'Hai', 'Raftaar'] }
+          ]
         },
         {
-          id: 'g5',
-          badge: 'Group 5',
-          line: 'Vo Nawab Ta Dubai',
-          note: 'Top to Bottom vertical column 5',
-          pairs: [['V', 23, 'Vo'], ['Nb', 41, 'Nawab'], ['Ta', 73, 'Ta'], ['Db', 105, 'Dubai']]
+          id: 'dg_5',
+          badge: 'Group 5 (Top → Bottom)',
+          note: 'V · Nb · Ta · Db',
+          elements: [['V', 23], ['Nb', 41], ['Ta', 73], ['Db', 105]],
+          options: [
+            { label: 'Option 1', line: 'Vo Nawab Ta Dubai!', words: ['Vo', 'Nawab', 'Ta', 'Dubai'] },
+            { label: 'Option 2', line: 'Virat Ne Tora Dabba!', words: ['Virat', 'Ne', 'Tora', 'Dabba'] },
+            { label: 'Option 3', line: 'Vada-pav Nawab Taza Dabeli!', words: ['Vada-pav', 'Nawab', 'Taza', 'Dabeli'] }
+          ]
         },
         {
-          id: 'g6',
-          badge: 'Group 6',
-          line: 'Croma Mobile Wala Sagar',
-          note: 'Cr, Mo, W famous high-melting group',
-          pairs: [['Cr', 24, 'Croma'], ['Mo', 42, 'Mobile'], ['W', 74, 'Wala'], ['Sg', 106, 'Sagar']]
+          id: 'dg_6',
+          badge: 'Group 6 (Top → Bottom)',
+          note: 'Cr · Mo · W · Sg',
+          elements: [['Cr', 24], ['Mo', 42], ['W', 74], ['Sg', 106]],
+          options: [
+            { label: 'Option 1', line: 'Croma Mobile Wala Sagar!', words: ['Croma', 'Mobile', 'Wala', 'Sagar'] },
+            { label: 'Option 2', line: 'Crore-pati Mol-bhav Wala Seth-ji!', words: ['Crore-pati', 'Mol-bhav', 'Wala', 'Seth-ji'] },
+            { label: 'Option 3', line: 'Car Motor WagonR Swag!', words: ['Car', 'Motor', 'WagonR', 'Swag'] }
+          ]
         },
         {
-          id: 'g7',
-          badge: 'Group 7',
-          line: 'Man Tak Re Bhai',
-          note: 'Top to Bottom vertical column 7',
-          pairs: [['Mn', 25, 'Man'], ['Tc', 43, 'Tak'], ['Re', 75, 'Re'], ['Bh', 107, 'Bhai']]
+          id: 'dg_7',
+          badge: 'Group 7 (Top → Bottom)',
+          note: 'Mn · Tc · Re · Bh',
+          elements: [['Mn', 25], ['Tc', 43], ['Re', 75], ['Bh', 107]],
+          options: [
+            { label: 'Option 1', line: 'Man Tak Re Bhai!', words: ['Man', 'Tak', 'Re', 'Bhai'] },
+            { label: 'Option 2', line: 'Mann Tera Re भोला (Bhola)!', words: ['Mann', 'Tera', 'Re', 'Bhola'] },
+            { label: 'Option 3', line: 'Munna Ticket Rakh जेब-Bhar!', words: ['Munna', 'Ticket', 'Rakh', 'Bhar'] }
+          ]
         },
         {
-          id: 'g8',
-          badge: 'Group 8',
-          line: 'Fer Ruka Osama Haste',
-          note: 'Top to Bottom vertical column 8',
-          pairs: [['Fe', 26, 'Fer'], ['Ru', 44, 'Ruka'], ['Os', 76, 'Osama'], ['Hs', 108, 'Haste']]
+          id: 'dg_8',
+          badge: 'Group 8 (Top → Bottom)',
+          note: 'Fe · Ru · Os · Hs',
+          elements: [['Fe', 26], ['Ru', 44], ['Os', 76], ['Hs', 108]],
+          options: [
+            { label: 'Option 1', line: 'Fer Ruka Osama Haste!', words: ['Fer', 'Ruka', 'Osama', 'Haste'] },
+            { label: 'Option 2', line: 'Firoz Rutha Os Hasa!', words: ['Firoz', 'Rutha', 'Os', 'Hasa'] },
+            { label: 'Option 3', line: 'Ferraricar Rukegi Us Highway-par!', words: ['Ferrari', 'Rukegi', 'Us', 'Highway'] }
+          ]
         },
         {
-          id: 'g9',
-          badge: 'Group 9',
-          line: 'Con Rhega Ireland Mat pooch',
-          note: 'Top to Bottom vertical column 9',
-          pairs: [['Co', 27, 'Con'], ['Rh', 45, 'Rhega'], ['Ir', 77, 'Ireland'], ['Mt', 109, 'Mat']]
+          id: 'dg_9',
+          badge: 'Group 9 (Top → Bottom)',
+          note: 'Co · Rh · Ir · Mt',
+          elements: [['Co', 27], ['Rh', 45], ['Ir', 77], ['Mt', 109]],
+          options: [
+            { label: 'Option 1', line: 'Con Rhega Ireland Mat pooch!', words: ['Con', 'Rhega', 'Ireland', 'Mat'] },
+            { label: 'Option 2', line: 'Coach Rohit Irfan Mast!', words: ['Coach', 'Rohit', 'Irfan', 'Mast'] },
+            { label: 'Option 3', line: 'Coffee Rahat Irani Mithai!', words: ['Coffee', 'Rahat', 'Irani', 'Mithai'] }
+          ]
         },
         {
-          id: 'g10',
-          badge: 'Group 10',
-          line: 'Nihi Pdhoge toh Ptoge Dost',
-          note: 'Catalytic metals column (Ni, Pd, Pt)',
-          pairs: [['Ni', 28, 'Nihi'], ['Pd', 46, 'Pdhoge'], ['Pt', 78, 'Ptoge'], ['Ds', 110, 'Dost']]
+          id: 'dg_10',
+          badge: 'Group 10 (Top → Bottom)',
+          note: 'Ni · Pd · Pt · Ds',
+          elements: [['Ni', 28], ['Pd', 46], ['Pt', 78], ['Ds', 110]],
+          options: [
+            { label: 'Option 1', line: 'Nihi Pdhoge toh Ptoge Dost!', words: ['Nihi', 'Pdhoge', 'Ptoge', 'Dost'] },
+            { label: 'Option 2', line: 'Nikhil Padha लिखा Pt Dost!', words: ['Nikhil', 'Padha', 'Pt', 'Dost'] },
+            { label: 'Option 3', line: 'Nita Paidalnikli Patna Das-baje!', words: ['Nita', 'Paidal', 'Patna', 'Das'] }
+          ]
         },
         {
-          id: 'g11',
+          id: 'dg_11',
           badge: 'Group 11 · Coinage Metals',
-          line: 'Cute Age Aur Rag (Copper · Chandi · Sona)',
-          note: 'Highest electrical conductivity group',
-          pairs: [['Cu', 29, 'Cute'], ['Ag', 47, 'Age'], ['Au', 79, 'Aur'], ['Rg', 111, 'Rag']]
+          note: 'Cu · Ag · Au · Rg (Copper, Silver, Gold)',
+          elements: [['Cu', 29], ['Ag', 47], ['Au', 79], ['Rg', 111]],
+          options: [
+            { label: 'Option 1', line: 'Cute Age Aur Rag!', words: ['Cute', 'Age', 'Aur', 'Rag'] },
+            { label: 'Option 2', line: 'kyun Aage Aau Raja!', words: ['Kyun', 'Aage', 'Aau', 'Raja'] },
+            { label: 'Option 3', line: 'Copper Chandi Sona Royal!', words: ['Copper', 'Chandi(Ag)', 'Sona(Au)', 'Royal(Rg)'] }
+          ]
         },
         {
-          id: 'g12',
+          id: 'dg_12',
           badge: 'Group 12 · Volatile Metals',
-          line: 'Zindagi Cadbury Hogayi Candy',
-          note: 'Full d¹⁰ configuration group',
-          pairs: [['Zn', 30, 'Zindagi'], ['Cd', 48, 'Cadbury'], ['Hg', 80, 'Hogayi'], ['Cn', 112, 'Candy']]
+          note: 'Zn · Cd · Hg · Cn',
+          elements: [['Zn', 30], ['Cd', 48], ['Hg', 80], ['Cn', 112]],
+          options: [
+            { label: 'Option 1', line: 'Zindagi Cadbury Hogayi Candy!', words: ['Zindagi', 'Cadbury', 'Hogayi', 'Candy'] },
+            { label: 'Option 2', line: 'Zara Codd-liver Hoga Cure!', words: ['Zara', 'Codd', 'Hoga', 'Cure'] },
+            { label: 'Option 3', line: 'Zandu Cold-balm Hoga Changa!', words: ['Zandu', 'Cold', 'Hoga', 'Changa'] }
+          ]
         }
       ]
     },
 
     sp: {
       id: 'sp',
-      tabLabel: 's & p Block (Groups 1–18)',
+      tabLabel: 's & p Block (G1–G18)',
       practiceScope: 'sp',
       practiceLabel: '🎯 Practice s & p Block Now',
       series: [
         {
-          id: 'g1',
+          id: 'sp_g1',
           badge: 'Group 1 · Alkali Metals',
-          line: 'HaLiNa Ki Rab Se Fariyaad!',
-          note: 'Outer configuration: ns¹',
-          pairs: [
-            ['H', 1, 'Ha'], ['Li', 3, 'Li'], ['Na', 11, 'Na'], ['K', 19, 'Ki'],
-            ['Rb', 37, 'Rab'], ['Cs', 55, 'Se'], ['Fr', 87, 'Fariyaad']
+          note: 'Valence config: ns¹',
+          elements: [['H', 1], ['Li', 3], ['Na', 11], ['K', 19], ['Rb', 37], ['Cs', 55], ['Fr', 87]],
+          options: [
+            { label: 'Option 1 (Classic)', line: 'HaLiNa Ki Rab Se Fariyaad!', words: ['Ha', 'Li', 'Na', 'Ki', 'Rab', 'Se', 'Fariyaad'] },
+            { label: 'Option 2 (Funny)', line: 'Hamare Liye Na Karo Rab Se Fariyaad!', words: ['Hamare', 'Liye', 'Na', 'Karo', 'Rab', 'Se', 'Fariyaad'] },
+            { label: 'Option 3 (Short)', line: 'Hi Li Na K Rb Cs Fr — Happy Little NaUGHTY Kids Rub Cats Fur!', words: ['Happy', 'Little', 'Naughty', 'Kids', 'Rub', 'Cats', 'Fur'] }
           ]
         },
         {
-          id: 'g2',
+          id: 'sp_g2',
           badge: 'Group 2 · Alkaline Earth Metals',
-          line: 'Beta Mange Car Scooter Baap Raazi!',
-          note: 'Outer configuration: ns²',
-          pairs: [
-            ['Be', 4, 'Beta'], ['Mg', 12, 'Mange'], ['Ca', 20, 'Car'],
-            ['Sr', 38, 'Scooter'], ['Ba', 56, 'Baap'], ['Ra', 88, 'Raazi']
+          note: 'Valence config: ns²',
+          elements: [['Be', 4], ['Mg', 12], ['Ca', 20], ['Sr', 38], ['Ba', 56], ['Ra', 88]],
+          options: [
+            { label: 'Option 1 (All-Time Hit)', line: 'Beta Mange Car Scooter Baap Raazi!', words: ['Beta', 'Mange', 'Car', 'Scooter', 'Baap', 'Raazi'] },
+            { label: 'Option 2 (twist)', line: 'Beta Mange Kanya Sundar Baap Roye!', words: ['Beta', 'Mange', 'Kanya', 'Sundar', 'Baap', 'Roye'] },
+            { label: 'Option 3 (Foodie)', line: 'Bina Maggi Burger-Cake Sirf Baasi Roti!', words: ['Bina', 'Maggi', 'Cake', 'Sirf', 'Baasi', 'Roti'] }
           ]
         },
         {
-          id: 'g13',
+          id: 'sp_g13',
           badge: 'Group 13 · Boron Family',
-          line: 'Baingan Aaloo Gajar In Thaila!',
-          note: 'Outer configuration: ns² np¹',
-          pairs: [
-            ['B', 5, 'Baingan'], ['Al', 13, 'Aaloo'], ['Ga', 31, 'Gajar'],
-            ['In', 49, 'In'], ['Tl', 81, 'Thaila'], ['Nh', 113, '(Nh)']
+          note: 'Valence config: ns² np¹',
+          elements: [['B', 5], ['Al', 13], ['Ga', 31], ['In', 49], ['Tl', 81], ['Nh', 113]],
+          options: [
+            { label: 'Option 1 (Mandi Hit)', line: 'Baingan Aaloo Gajar In Thaila Nahi!', words: ['Baingan', 'Aaloo', 'Gajar', 'In', 'Thaila', 'Nahi'] },
+            { label: 'Option 2 (Filmy)', line: 'BAl GAngadhar In Tilak Nihal!', words: ['Bal', 'Al-', 'Gangadhar', 'In', 'Tilak', 'Nihal'] },
+            { label: 'Option 3 (Cricket)', line: 'Bumrah All-out Gill Ishan Tilak Nehra!', words: ['Bumrah', 'All-out', 'Gill', 'Ishan', 'Tilak', 'Nehra'] }
           ]
         },
         {
-          id: 'g14',
+          id: 'sp_g14',
           badge: 'Group 14 · Carbon Family',
-          line: 'Kahe Sita Ji Suno Prabhu!',
-          note: 'Outer configuration: ns² np²',
-          pairs: [
-            ['C', 6, 'Kahe'], ['Si', 14, 'Sita'], ['Ge', 32, 'Ji'],
-            ['Sn', 50, 'Suno'], ['Pb', 82, 'Prabhu'], ['Fl', 114, '(Fl)']
+          note: 'Valence config: ns² np²',
+          elements: [['C', 6], ['Si', 14], ['Ge', 32], ['Sn', 50], ['Pb', 82], ['Fl', 114]],
+          options: [
+            { label: 'Option 1 (Bhakti Classic)', line: 'Kahe Sita Ji Suno Prabhu Filar!', words: ['Kahe', 'Sita', 'Ji', 'Suno', 'Prabhu', 'Filar'] },
+            { label: 'Option 2 (College)', line: 'Chemistry Sir Gives Sanki Problems Full!', words: ['Chemistry', 'Sir', 'Gives', 'Sanki', 'Problems', 'Full'] },
+            { label: 'Option 3 (Cinema)', line: 'Chale Shiv Ji Sang Parvati कैलाश-Flower!', words: ['Chale', 'Shiv', 'Ji', 'Sang', 'Parvati', 'Flower'] }
           ]
         },
         {
-          id: 'g15',
-          badge: 'Group 15 · Nitrogen Family',
-          line: 'Nana Patekar Aishwarya Sab Bindaas!',
-          note: 'Outer configuration: ns² np³',
-          pairs: [
-            ['N', 7, 'Nana'], ['P', 15, 'Patekar'], ['As', 33, 'Aishwarya'],
-            ['Sb', 51, 'Sab'], ['Bi', 83, 'Bindaas'], ['Mc', 115, '(Mc)']
+          id: 'sp_g15',
+          badge: 'Group 15 · Nitrogen Family (Pnictogens)',
+          note: 'Valence config: ns² np³',
+          elements: [['N', 7], ['P', 15], ['As', 33], ['Sb', 51], ['Bi', 83], ['Mc', 115]],
+          options: [
+            { label: 'Option 1 (Bollywood)', line: 'Nana Patekar Aishwarya Sab Bindaas मचाएं!', words: ['Nana', 'Patekar', 'Aishwarya', 'Sab', 'Bindaas', 'Machaye'] },
+            { label: 'Option 2 (Desi)', line: 'Nepal Pakistan Australia Sab Bhikhari/Bindaas Match!', words: ['Nepal', 'Pakistan', 'Australia', 'Sab', 'Bindaas', 'Match'] },
+            { label: 'Option 3 ( Hostel )', line: 'Nahi Pasand Aise Sab बेकार बहाने Mujhko!', words: ['Nahi', 'Pasand', 'Aise', 'Sab', 'Bahane', 'Mujhko'] }
           ]
         },
         {
-          id: 'g16',
-          badge: 'Group 16 · Oxygen Family',
-          line: 'Old Style Se TePo!',
-          note: 'Outer configuration: ns² np⁴',
-          pairs: [
-            ['O', 8, 'Old'], ['S', 16, 'Style'], ['Se', 34, 'Se'],
-            ['Te', 52, 'Te-'], ['Po', 84, '-Po'], ['Lv', 116, '(Lv)']
+          id: 'sp_g16',
+          badge: 'Group 16 · Oxygen Family (Chalcogens)',
+          note: 'Valence config: ns² np⁴',
+          elements: [['O', 8], ['S', 16], ['Se', 34], ['Te', 52], ['Po', 84], ['Lv', 116]],
+          options: [
+            { label: 'Option 1 (Exam Favorite)', line: 'Old Style Se Te-Po Live!', words: ['Old', 'Style', 'Se', 'Te-', '-Po', 'Live'] },
+            { label: 'Option 2 (Funny)', line: 'Os Se Te-Po — Us Se Chepo Love-letter!', words: ['Os', 'Se', 'Se-2', 'Te-', '-Po', 'Love'] },
+            { label: 'Option 3 (Sweet)', line: 'O Soniye Seene Tera Pyar Lovely!', words: ['O', 'Soniye', 'Seene', 'Tera', 'Pyar', 'Lovely'] }
           ]
         },
         {
-          id: 'g17',
+          id: 'sp_g17',
           badge: 'Group 17 · Halogens',
-          line: 'Fir Call Bahar Aayi Aunty!',
-          note: 'Outer configuration: ns² np⁵',
-          pairs: [
-            ['F', 9, 'Fir'], ['Cl', 17, 'Call'], ['Br', 35, 'Bahar'],
-            ['I', 53, 'Aayi'], ['At', 85, 'Aunty'], ['Ts', 117, '(Ts)']
+          note: 'Valence config: ns² np⁵',
+          elements: [['F', 9], ['Cl', 17], ['Br', 35], ['I', 53], ['At', 85], ['Ts', 117]],
+          options: [
+            { label: 'Option 1 (Classic Hit)', line: 'Fir Call Bahar Aayi Aunty Tension-mein!', words: ['Fir', 'Call', 'Bahar', 'Aayi', 'Aunty', 'Tension'] },
+            { label: 'Option 2 (School)', line: 'First Class Biriyani In Austria Tasty!', words: ['First', 'Class', 'Biriyani', 'In', 'Austria', 'Tasty'] },
+            { label: 'Option 3 (Cricket)', line: 'Faf Clean-bowled Bumrah Ishant Ashwin Test!', words: ['Faf', 'Clean', 'Bumrah', 'Ishant', 'Ashwin', 'Test'] }
           ]
         },
         {
-          id: 'g18',
+          id: 'sp_g18',
           badge: 'Group 18 · Noble Gases',
-          line: 'Heena Neena Aur Kareena Ka X-ray Rangeen!',
-          note: 'Complete shell: ns² np⁶ (He = 1s²)',
-          pairs: [
-            ['He', 2, 'Heena'], ['Ne', 10, 'Neena'], ['Ar', 18, 'Aur'],
-            ['Kr', 36, 'Kareena'], ['Xe', 54, 'X-ray'], ['Rn', 86, 'Rangeen'], ['Og', 118, '(Og)']
+          note: 'Complete octet: ns² np⁶ (He = 1s²)',
+          elements: [['He', 2], ['Ne', 10], ['Ar', 18], ['Kr', 36], ['Xe', 54], ['Rn', 86], ['Og', 118]],
+          options: [
+            { label: 'Option 1 (Bollywood Hit)', line: 'Heena Neena Aur Kareena Ka X-ray Rangeen OMG!', words: ['Heena', 'Neena', 'Aur', 'Kareena', 'X-ray', 'Rangeen', 'OMG'] },
+            { label: 'Option 2 (Cricket)', line: 'Harbhajan Nehra Agarkar Karthik पर Zero Run Out!', words: ['Harbhajan', 'Nehra', 'Agarkar', 'Karthik', 'Xero', 'Run', 'Out'] },
+            { label: 'Option 3 (Desi)', line: 'Hero Ne Arrogant Krantikari X-men Roka Original!', words: ['Hero', 'Ne', 'Arrogant', 'Krantikari', 'X-men', 'Roka', 'Original'] }
           ]
         }
       ]
@@ -261,58 +344,209 @@
 
     f: {
       id: 'f',
-      tabLabel: 'f-Block (Lanthanide & Actinide)',
+      tabLabel: 'f-Block (4f & 5f)',
       practiceScope: 'f',
       practiceLabel: '🎯 Practice f-Block Now',
       series: [
         {
-          id: '4f',
+          id: 'f_4f',
           badge: '4f Lanthanides · Row 6* (Z = 57–71)',
-          line: 'Laal Cera Par Nadi Prem Samaye — Europe Gadbad Tab Dil Ho Eram Tum Yebhi Luto!',
           note: '15 Rare-Earth Lanthanide elements (57 La to 71 Lu)',
-          pairs: [
-            ['La', 57, 'Laal'], ['Ce', 58, 'Cera'], ['Pr', 59, 'Par'], ['Nd', 60, 'Nadi'], ['Pm', 61, 'Prem'],
-            ['Sm', 62, 'Samaye'], ['Eu', 63, 'Europe'], ['Gd', 64, 'Gadbad'], ['Tb', 65, 'Tab'], ['Dy', 66, 'Dil'],
-            ['Ho', 67, 'Ho'], ['Er', 68, 'Eram'], ['Tm', 69, 'Tum'], ['Yb', 70, 'Yebhi'], ['Lu', 71, 'Luto']
+          elements: [
+            ['La', 57], ['Ce', 58], ['Pr', 59], ['Nd', 60], ['Pm', 61],
+            ['Sm', 62], ['Eu', 63], ['Gd', 64], ['Tb', 65], ['Dy', 66],
+            ['Ho', 67], ['Er', 68], ['Tm', 69], ['Yb', 70], ['Lu', 71]
+          ],
+          options: [
+            {
+              label: 'Option 1 (Desi Story)',
+              line: 'Laal Cera Par Nadi Prem Samaye — Europe Gadbad Tab Dil Ho Eram Tum Yebhi Luto!',
+              words: ['Laal', 'Cera', 'Par', 'Nadi', 'Prem', 'Samaye', 'Europe', 'Gadbad', 'Tab', 'Dil', 'Ho', 'Eram', 'Tum', 'Yebhi', 'Luto']
+            },
+            {
+              label: 'Option 2 (Kota Famous)',
+              line: 'Lallu Se Pravin Ne कहा Pammy Samajh — Europe Gaya Toh Didi Ho Errey Tum Yahan Lauto!',
+              words: ['Lallu', 'Se', 'Pravin', 'Ne', 'Pammy', 'Samajh', 'Europe', 'Gaya', 'Toh', 'Didi', 'Ho', 'Errey', 'Tum', 'Yahan', 'Lauto']
+            },
+            {
+              label: 'Option 3 (Easy English-Hindi)',
+              line: 'Ladies Can’t Put Needles Properly in Slot-machine — Every Girl Tries Daily, However Every Time You Lose!',
+              words: ['Ladies', 'Can’t', 'Put', 'Needles', 'Properly', 'Slot', 'Every', 'Girl', 'Tries', 'Daily', 'However', 'Every', 'Time', 'You', 'Lose']
+            }
           ]
         },
         {
-          id: '5f',
+          id: 'f_5f',
           badge: '5f Actinides · Row 7* (Z = 89–103)',
-          line: 'Aaj Thode Paapad Upar Naapo — Purane Aam Kam Bikenge Cafe Aish Farmate Madam Nobel Lawrencium!',
           note: '15 Radioactive Actinide elements (89 Ac to 103 Lr)',
-          pairs: [
-            ['Ac', 89, 'Aaj'], ['Th', 90, 'Thode'], ['Pa', 91, 'Paapad'], ['U', 92, 'Upar'], ['Np', 93, 'Naapo'],
-            ['Pu', 94, 'Purane'], ['Am', 95, 'Aam'], ['Cm', 96, 'Kam'], ['Bk', 97, 'Bikenge'], ['Cf', 98, 'Cafe'],
-            ['Es', 99, 'Aish'], ['Fm', 100, 'Farmate'], ['Md', 101, 'Madam'], ['No', 102, 'Nobel'], ['Lr', 103, 'Lawrencium']
+          elements: [
+            ['Ac', 89], ['Th', 90], ['Pa', 91], ['U', 92], ['Np', 93],
+            ['Pu', 94], ['Am', 95], ['Cm', 96], ['Bk', 97], ['Cf', 98],
+            ['Es', 99], ['Fm', 100], ['Md', 101], ['No', 102], ['Lr', 103]
+          ],
+          options: [
+            {
+              label: 'Option 1 (Aam Papad Hit)',
+              line: 'Aaj Thode Paapad Upar Naapo — Purane Aam Kam Bikenge Cafe Aish Farmate Madam Nobel Lawrencium!',
+              words: ['Aaj', 'Thode', 'Paapad', 'Upar', 'Naapo', 'Purane', 'Aam', 'Kam', 'Bikenge', 'Cafe', 'Aish', 'Farmate', 'Madam', 'Nobel', 'Lawrencium']
+            },
+            {
+              label: 'Option 2 (Tange Wala)',
+              line: 'Accha Tha Paagal Unse Nipta — Purana Aam Kamao, Bank Californium Einsteinium Fermium Mendelevium Nobelium Lawrencium!',
+              words: ['Accha', 'Tha', 'Paagal', 'Unse', 'Nipta', 'Purana', 'Aam', 'Kamao', 'Bank', 'Calif.', 'Einst.', 'Ferm.', 'Mendel.', 'Nobel.', 'Lawr.']
+            },
+            {
+              label: 'Option 3 (Action Hero)',
+              line: 'Action Thor Paas Uranus Neptune Pluto — America Curium Berkeley California Einstein Family Made No-1 Leader!',
+              words: ['Action', 'Thor', 'Paas', 'Uranus', 'Neptune', 'Pluto', 'America', 'Curium', 'Berkeley', 'Calif.', 'Einstein', 'Family', 'Made', 'No-1', 'Leader']
+            }
           ]
         }
       ]
     }
   };
 
-  // Build quick per-element mnemonic lookup (Prioritize primary row/group mnemonics: d -> sp -> f)
-  const BY_ELEMENT_Z = new Map();
-  ['d', 'sp', 'f'].forEach((tabKey) => {
-    MNEMONIC_TABS[tabKey].series.forEach((s) => {
-      s.pairs.forEach(([sym, z, word]) => {
-        if (!BY_ELEMENT_Z.has(z)) {
-          const highlighted = s.pairs
-            .map(([, pz, pw]) => (pz === z ? `[${pw.toUpperCase()} -> ${sym}]` : pw))
+  // Load saved user preferences & custom mnemonics from localStorage
+  // Schema: { selectedChoice: { [seriesId]: number | 'custom' }, customData: { [seriesId]: { line: string, words: string[] } } }
+  function loadUserStore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          selectedChoice: parsed.selectedChoice || {},
+          customData: parsed.customData || {}
+        };
+      }
+    } catch (_) {}
+    return { selectedChoice: {}, customData: {} };
+  }
+
+  let store = loadUserStore();
+
+  function saveUserStore() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    } catch (_) {}
+  }
+
+  function findSeriesById(seriesId) {
+    for (const tab of Object.values(RAW_TABS)) {
+      const found = tab.series.find((s) => s.id === seriesId);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function getResolvedSeries(seriesObj) {
+    const custom = store.customData[seriesObj.id] || null;
+    let choice = store.selectedChoice[seriesObj.id];
+    if (choice === undefined) choice = 0;
+    if (choice === 'custom' && !custom) choice = 0;
+
+    let activeEntry;
+    if (choice === 'custom' && custom) {
+      activeEntry = {
+        label: '★ Mera Custom',
+        line: custom.line,
+        words: custom.words
+      };
+    } else {
+      const idx = typeof choice === 'number' && seriesObj.options[choice] ? choice : 0;
+      choice = idx;
+      activeEntry = seriesObj.options[idx];
+    }
+
+    const pairs = seriesObj.elements.map(([sym, z], idx) => [
+      sym,
+      z,
+      activeEntry.words[idx] || sym
+    ]);
+
+    return {
+      ...seriesObj,
+      activeChoice: choice,
+      hasCustom: Boolean(custom),
+      customEntry: custom,
+      line: activeEntry.line,
+      pairs
+    };
+  }
+
+  // Dynamic per-element active mnemonic lookup (always reflects user's latest selected preset or custom line!)
+  function getForElement(z) {
+    for (const tabKey of ['d', 'sp', 'f']) {
+      for (const s of RAW_TABS[tabKey].series) {
+        const idx = s.elements.findIndex(([, ez]) => ez === z);
+        if (idx !== -1) {
+          const resolved = getResolvedSeries(s);
+          const [sym, , word] = resolved.pairs[idx];
+          const highlighted = resolved.pairs
+            .map(([, pz, pw]) => (pz === z ? `[${pw.toUpperCase()} → ${sym}]` : pw))
             .join(' ');
-          BY_ELEMENT_Z.set(z, {
+          return {
+            seriesId: s.id,
             seriesBadge: s.badge,
             word,
-            line: s.line,
+            line: resolved.line,
             highlighted
-          });
+          };
         }
-      });
-    });
-  });
+      }
+    }
+    return null;
+  }
 
   window.MNEMONICS_DATA = {
-    TABS: MNEMONIC_TABS,
-    BY_ELEMENT_Z
+    TABS: RAW_TABS,
+    getResolvedSeries,
+    getForElement,
+
+    selectOption(seriesId, choice) {
+      store.selectedChoice[seriesId] = choice;
+      saveUserStore();
+    },
+
+    saveCustomMnemonic(seriesId, line, wordsArray) {
+      const s = findSeriesById(seriesId);
+      if (!s) return false;
+      const cleanLine = String(line || '').trim();
+      const autoTokens = cleanLine ? cleanLine.replace(/—/g, ' ').split(/\s+/).filter(Boolean) : [];
+      const finalWords = s.elements.map(([sym], idx) => {
+        const explicit = wordsArray && wordsArray[idx] ? String(wordsArray[idx]).trim() : '';
+        return explicit || autoTokens[idx] || sym;
+      });
+      store.customData[seriesId] = {
+        line: cleanLine || finalWords.join(' '),
+        words: finalWords
+      };
+      store.selectedChoice[seriesId] = 'custom';
+      saveUserStore();
+      return true;
+    },
+
+    deleteCustomMnemonic(seriesId) {
+      delete store.customData[seriesId];
+      if (store.selectedChoice[seriesId] === 'custom') {
+        store.selectedChoice[seriesId] = 0;
+      }
+      saveUserStore();
+    },
+
+    splitLineIntoWords(line, count) {
+      const clean = String(line || '').replace(/[—–]+/g, ' ').trim();
+      if (!clean) return new Array(count).fill('');
+      const parts = clean.split(/\s+/).filter(Boolean);
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        if (i < count - 1) {
+          out.push(parts[i] || '');
+        } else {
+          // Last slot absorbs any remaining words cleanly!
+          out.push(parts.slice(i).join(' ') || '');
+        }
+      }
+      return out;
+    }
   };
 })();
