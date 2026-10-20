@@ -84,6 +84,8 @@ def build_binary_axml():
         ("label", 0x01010001),
         ("icon", 0x01010002),
         ("name", 0x01010003),
+        ("exported", 0x01010010),
+        ("screenOrientation", 0x0101001E),
         ("configChanges", 0x0101001F),
         ("versionCode", 0x0101021B),
         ("versionName", 0x0101021C),
@@ -91,7 +93,6 @@ def build_binary_axml():
         ("targetSdkVersion", 0x01010270),
         ("hardwareAccelerated", 0x010102D3),
         ("usesCleartextTraffic", 0x010104EC),
-        ("exported", 0x01010010),
     ]
 
     extra_strings = [
@@ -229,7 +230,7 @@ def build_binary_axml():
     ]
 
     app_attrs = [
-        make_attr(ANDROID_NS, "theme", TYPE_REFERENCE, 0x01030006),  # Theme.Black.NoTitleBar (clean dark status bar, zero camera-notch collision)
+        make_attr(ANDROID_NS, "theme", TYPE_REFERENCE, 0x01030007),  # Theme.Black.NoTitleBar.Fullscreen
         make_attr(ANDROID_NS, "label", TYPE_STRING, sidx[APP_LABEL], APP_LABEL),
         make_attr(ANDROID_NS, "icon", TYPE_REFERENCE, ICON_RES_ID),
         make_attr(ANDROID_NS, "hardwareAccelerated", TYPE_INT_BOOL, 0xFFFFFFFF),
@@ -237,10 +238,12 @@ def build_binary_axml():
     ]
 
     # configChanges: keyboardHidden(0x20) | orientation(0x80) | screenLayout(0x100) | screenSize(0x400) = 0x05A0
+    # screenOrientation: 6 = SCREEN_ORIENTATION_SENSOR_LANDSCAPE (opens immediately in Fullscreen Landscape!)
     act_attrs = [
         make_attr(ANDROID_NS, "label", TYPE_STRING, sidx[APP_LABEL], APP_LABEL),
         make_attr(ANDROID_NS, "name", TYPE_STRING, sidx[ACTIVITY_NAME], ACTIVITY_NAME),
         make_attr(ANDROID_NS, "exported", TYPE_INT_BOOL, 0xFFFFFFFF),
+        make_attr(ANDROID_NS, "screenOrientation", TYPE_INT_DEC, 6),
         make_attr(ANDROID_NS, "configChanges", TYPE_INT_HEX, 0x05A0),
     ]
 
@@ -356,6 +359,7 @@ def build_classes_dex():
         "Landroid/content/Context;",
         "Landroid/os/Bundle;",
         "Landroid/view/View;",
+        "Landroid/view/Window;",
         "Landroid/webkit/WebChromeClient;",
         "Landroid/webkit/WebSettings;",
         "Landroid/webkit/WebView;",
@@ -370,11 +374,14 @@ def build_classes_dex():
         "ZI",
         "canGoBack",
         "file:///android_asset/www/index.html",
+        "getDecorView",
         "getSettings",
+        "getWindow",
         "goBack",
         "loadUrl",
         "onBackPressed",
         "onCreate",
+        "onWindowFocusChanged",
         "requestWindowFeature",
         "setAllowFileAccess",
         "setAllowUniversalAccessFromFileURLs",
@@ -383,6 +390,8 @@ def build_classes_dex():
         "setDomStorageEnabled",
         "setJavaScriptEnabled",
         "setMediaPlaybackRequiresUserGesture",
+        "setRequestedOrientation",
+        "setSystemUiVisibility",
         "setWebChromeClient",
         "setWebViewClient",
         "webView",
@@ -397,6 +406,7 @@ def build_classes_dex():
         "Landroid/content/Context;",
         "Landroid/os/Bundle;",
         "Landroid/view/View;",
+        "Landroid/view/Window;",
         "Landroid/webkit/WebChromeClient;",
         "Landroid/webkit/WebSettings;",
         "Landroid/webkit/WebView;",
@@ -419,6 +429,8 @@ def build_classes_dex():
         ("VL", "V", ("Landroid/webkit/WebViewClient;",)),
         ("VL", "V", ("Ljava/lang/String;",)),
         ("VZ", "V", ("Z",)),
+        ("L", "Landroid/view/View;", ()),
+        ("L", "Landroid/view/Window;", ()),
         ("L", "Landroid/webkit/WebSettings;", ()),
         ("Z", "Z", ()),
         ("ZI", "Z", ("I",)),
@@ -435,10 +447,15 @@ def build_classes_dex():
     # Methods: (class_type, name, (ret_type, (params...)))
     raw_methods = [
         ("Landroid/app/Activity;", "<init>", ("V", ())),
+        ("Landroid/app/Activity;", "getWindow", ("Landroid/view/Window;", ())),
         ("Landroid/app/Activity;", "onBackPressed", ("V", ())),
         ("Landroid/app/Activity;", "onCreate", ("V", ("Landroid/os/Bundle;",))),
+        ("Landroid/app/Activity;", "onWindowFocusChanged", ("V", ("Z",))),
         ("Landroid/app/Activity;", "requestWindowFeature", ("Z", ("I",))),
         ("Landroid/app/Activity;", "setContentView", ("V", ("Landroid/view/View;",))),
+        ("Landroid/app/Activity;", "setRequestedOrientation", ("V", ("I",))),
+        ("Landroid/view/View;", "setSystemUiVisibility", ("V", ("I",))),
+        ("Landroid/view/Window;", "getDecorView", ("Landroid/view/View;", ())),
         ("Landroid/webkit/WebChromeClient;", "<init>", ("V", ())),
         ("Landroid/webkit/WebSettings;", "setAllowFileAccess", ("V", ("Z",))),
         ("Landroid/webkit/WebSettings;", "setAllowUniversalAccessFromFileURLs", ("V", ("Z",))),
@@ -457,6 +474,7 @@ def build_classes_dex():
         ("Lcom/periodictable/arena/MainActivity;", "<init>", ("V", ())),
         ("Lcom/periodictable/arena/MainActivity;", "onBackPressed", ("V", ())),
         ("Lcom/periodictable/arena/MainActivity;", "onCreate", ("V", ("Landroid/os/Bundle;",))),
+        ("Lcom/periodictable/arena/MainActivity;", "onWindowFocusChanged", ("V", ("Z",))),
     ]
     methods = sorted(raw_methods, key=lambda m: (t_idx[m[0]], s_idx[m[1]], p_idx[m[2]]))
     m_idx = {m: i for i, m in enumerate(methods)}
@@ -515,6 +533,14 @@ def build_classes_dex():
             op_35c(0x6F, [4, 5], m_idx[("Landroid/app/Activity;", "onCreate", ("V", ("Landroid/os/Bundle;",)))]),
             op_11n(0x12, 0, 1),  # v0 = true / 1
             op_35c(0x6E, [4, 0], m_idx[("Landroid/app/Activity;", "requestWindowFeature", ("Z", ("I",)))]),
+            op_11n(0x12, 3, 6),  # SCREEN_ORIENTATION_SENSOR_LANDSCAPE = 6
+            op_35c(0x6E, [4, 3], m_idx[("Landroid/app/Activity;", "setRequestedOrientation", ("V", ("I",)))]),
+            op_35c(0x6E, [4], m_idx[("Landroid/app/Activity;", "getWindow", ("Landroid/view/Window;", ()))]),
+            op_11x(0x0C, 2),
+            op_35c(0x6E, [2], m_idx[("Landroid/view/Window;", "getDecorView", ("Landroid/view/View;", ()))]),
+            op_11x(0x0C, 2),
+            op_31i(0x14, 3, 0x00001706),  # IMMERSIVE_STICKY | FULLSCREEN | HIDE_NAVIGATION | LAYOUT_FULLSCREEN | LAYOUT_HIDE_NAVIGATION | LAYOUT_STABLE
+            op_35c(0x6E, [2, 3], m_idx[("Landroid/view/View;", "setSystemUiVisibility", ("V", ("I",)))]),
             op_21c(0x22, 1, t_idx["Landroid/webkit/WebView;"]),
             op_35c(0x70, [1, 4], m_idx[("Landroid/webkit/WebView;", "<init>", ("V", ("Landroid/content/Context;",)))]),
             op_22c(0x5B, 1, 4, f_webview),  # this.webView = v1
@@ -570,6 +596,23 @@ def build_classes_dex():
             op_35c(0x6E, [0], m_idx[("Landroid/webkit/WebView;", "goBack", ("V", ()))]),
             op_10x(0x0E),
             op_35c(0x6F, [2], m_idx[("Landroid/app/Activity;", "onBackPressed", ("V", ()))]),
+            op_10x(0x0E),
+        ])
+    )
+
+    # Code 4: MainActivity.onWindowFocusChanged(Z)V -> v3 = this, v4 = hasFocus
+    # Keeps edge-to-edge Immersive Sticky Fullscreen active whenever app regains focus!
+    code_onfocus = make_code_item(
+        5, 2, 2,
+        b"".join([
+            op_35c(0x6F, [3, 4], m_idx[("Landroid/app/Activity;", "onWindowFocusChanged", ("V", ("Z",)))]),
+            op_21t(0x38, 4, 16),
+            op_35c(0x6E, [3], m_idx[("Landroid/app/Activity;", "getWindow", ("Landroid/view/Window;", ()))]),
+            op_11x(0x0C, 0),
+            op_35c(0x6E, [0], m_idx[("Landroid/view/Window;", "getDecorView", ("Landroid/view/View;", ()))]),
+            op_11x(0x0C, 1),
+            op_31i(0x14, 2, 0x00001706),
+            op_35c(0x6E, [1, 2], m_idx[("Landroid/view/View;", "setSystemUiVisibility", ("V", ("I",)))]),
             op_10x(0x0E),
         ])
     )
@@ -644,6 +687,10 @@ def build_classes_dex():
     code_oncreate_off = len(buf)
     buf.extend(code_oncreate)
 
+    align4()
+    code_onfocus_off = len(buf)
+    buf.extend(code_onfocus)
+
     # Emit string_data_items
     string_data_off = len(buf)
     for i, s in enumerate(strings):
@@ -657,10 +704,12 @@ def build_classes_dex():
     m_main_init = m_idx[("Lcom/periodictable/arena/MainActivity;", "<init>", ("V", ()))]
     m_main_back = m_idx[("Lcom/periodictable/arena/MainActivity;", "onBackPressed", ("V", ()))]
     m_main_create = m_idx[("Lcom/periodictable/arena/MainActivity;", "onCreate", ("V", ("Landroid/os/Bundle;",)))]
+    m_main_focus = m_idx[("Lcom/periodictable/arena/MainActivity;", "onWindowFocusChanged", ("V", ("Z",)))]
 
     vmethods = sorted([
-        (m_main_back, 0x0001, code_onback_off),    # ACC_PUBLIC
-        (m_main_create, 0x0004, code_oncreate_off) # ACC_PROTECTED
+        (m_main_back, 0x0001, code_onback_off),     # ACC_PUBLIC
+        (m_main_create, 0x0004, code_oncreate_off), # ACC_PROTECTED
+        (m_main_focus, 0x0001, code_onfocus_off),   # ACC_PUBLIC
     ], key=lambda x: x[0])
 
     class_data_off = len(buf)
@@ -713,7 +762,7 @@ def build_classes_dex():
         (0x0005, len(methods), method_ids_off),
         (0x0006, 1, class_defs_off),
         (0x1001, len(unique_param_tuples), min(type_list_offsets.values())),
-        (0x2001, 3, code_init_off),
+        (0x2001, 1 + len(vmethods), code_init_off),
         (0x2002, len(strings), string_data_off),
         (0x2000, 1, class_data_off),
         (0x1000, 1, map_off),

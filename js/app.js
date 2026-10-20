@@ -144,6 +144,145 @@
   };
 
   let deferredInstallPrompt = null;
+  let forceLandscapeMode = Boolean(window.__PT_IS_PHONE__);
+  let phoneUserExitedFs = false;
+
+  function isNativeFullscreen() {
+    return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function isCssLandscape() {
+    return document.documentElement.classList.contains('css-landscape');
+  }
+
+  function getLandscapeViewport() {
+    if (isCssLandscape()) {
+      return { width: window.innerHeight, height: window.innerWidth };
+    }
+    return { width: window.innerWidth, height: window.innerHeight };
+  }
+
+  function toLandscapePoint(clientX, clientY) {
+    if (isCssLandscape()) {
+      return { x: clientY, y: window.innerWidth - clientX };
+    }
+    return { x: clientX, y: clientY };
+  }
+
+  function syncLandscapeLayout() {
+    const wantLandscape = forceLandscapeMode || isNativeFullscreen();
+    const physicalPortrait = window.innerHeight > window.innerWidth;
+    document.documentElement.classList.toggle('css-landscape', wantLandscape && physicalPortrait);
+
+    if (dom.btnFullscreen) {
+      const active = isNativeFullscreen() || forceLandscapeMode;
+      dom.btnFullscreen.classList.toggle('fs-active', active);
+      dom.btnFullscreen.textContent = isNativeFullscreen() ? '⤡' : '⛶';
+      dom.btnFullscreen.title = isNativeFullscreen()
+        ? 'Exit Fullscreen Mode'
+        : 'Fullscreen + Landscape Mode';
+    }
+  }
+
+  async function enterFullscreenLandscape() {
+    forceLandscapeMode = true;
+    phoneUserExitedFs = false;
+    syncLandscapeLayout();
+
+    try {
+      const docEl = document.documentElement;
+      const reqFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+      if (reqFs && !isNativeFullscreen()) {
+        const res = reqFs.call(docEl, { navigationUI: 'hide' });
+        if (res && typeof res.then === 'function') await res;
+      }
+    } catch (_) {}
+
+    try {
+      if (screen.orientation && typeof screen.orientation.lock === 'function') {
+        await screen.orientation.lock('landscape');
+      }
+    } catch (_) {}
+
+    syncLandscapeLayout();
+    setTimeout(syncLandscapeLayout, 100);
+    setTimeout(syncLandscapeLayout, 320);
+  }
+
+  async function exitFullscreenLandscape() {
+    forceLandscapeMode = false;
+    phoneUserExitedFs = true;
+
+    try {
+      if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+        screen.orientation.unlock();
+      }
+    } catch (_) {}
+
+    try {
+      const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exitFs && isNativeFullscreen()) {
+        const res = exitFs.call(document);
+        if (res && typeof res.then === 'function') await res;
+      }
+    } catch (_) {}
+
+    syncLandscapeLayout();
+    setTimeout(syncLandscapeLayout, 100);
+  }
+
+  function bindCssLandscapeTouchScroll() {
+    let active = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      if (!isCssLandscape() || e.touches.length !== 1) {
+        active = false;
+        return;
+      }
+      const tag = e.target && e.target.tagName ? e.target.tagName : '';
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'RANGE') {
+        active = false;
+        return;
+      }
+      const pt = toLandscapePoint(e.touches[0].clientX, e.touches[0].clientY);
+      lastX = pt.x;
+      lastY = pt.y;
+      active = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!active || !isCssLandscape() || e.touches.length !== 1) return;
+      if (document.querySelector('.dragging')) return;
+
+      const pt = toLandscapePoint(e.touches[0].clientX, e.touches[0].clientY);
+      let remX = pt.x - lastX;
+      let remY = pt.y - lastY;
+      lastX = pt.x;
+      lastY = pt.y;
+
+      let node = e.target instanceof Element ? e.target : null;
+      while (node && node !== document.documentElement) {
+        if (Math.abs(remX) > 0.2 && node.scrollWidth > node.clientWidth + 1) {
+          const prev = node.scrollLeft;
+          node.scrollLeft -= remX;
+          remX += (node.scrollLeft - prev);
+        }
+        if (Math.abs(remY) > 0.2 && node.scrollHeight > node.clientHeight + 1) {
+          const prev = node.scrollTop;
+          node.scrollTop -= remY;
+          remY += (node.scrollTop - prev);
+        }
+        node = node.parentElement;
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    const stop = () => { active = false; };
+    document.addEventListener('touchend', stop, { passive: true });
+    document.addEventListener('touchcancel', stop, { passive: true });
+  }
 
   const cellElements = new Map();
   const groupHeaders = new Map();
@@ -791,14 +930,17 @@
     let startY = 0;
     let curX = 0;
     let curY = 0;
+    let rawX = 0;
+    let rawY = 0;
     let lastHoveredCell = null;
     let rafId = null;
 
     function updateAutoScroll() {
       if (!dragActive) return;
       const edge = 56;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const vp = getLandscapeViewport();
+      const vw = vp.width;
+      const vh = vp.height;
       let vx = 0;
       let vy = 0;
 
@@ -821,7 +963,7 @@
         dom.appShell.scrollTop += vy;
       }
       if (vx !== 0 || vy !== 0) {
-        refreshHoveredTarget(curX, curY);
+        refreshHoveredTarget(rawX, rawY);
       }
       rafId = requestAnimationFrame(updateAutoScroll);
     }
@@ -868,17 +1010,23 @@
       dragActive = false;
       gestureCanceled = false;
       const touch = e.touches[0];
-      startX = touch.clientX;
-      startY = touch.clientY;
-      curX = touch.clientX;
-      curY = touch.clientY;
+      rawX = touch.clientX;
+      rawY = touch.clientY;
+      const pt = toLandscapePoint(rawX, rawY);
+      startX = pt.x;
+      startY = pt.y;
+      curX = pt.x;
+      curY = pt.y;
     }, { passive: true });
 
     sourceNode.addEventListener('touchmove', (e) => {
       if (!pendingPayload || gestureCanceled) return;
       const touch = e.touches[0];
-      curX = touch.clientX;
-      curY = touch.clientY;
+      rawX = touch.clientX;
+      rawY = touch.clientY;
+      const pt = toLandscapePoint(rawX, rawY);
+      curX = pt.x;
+      curY = pt.y;
       const dx = curX - startX;
       const dy = curY - startY;
 
@@ -912,7 +1060,7 @@
         ghost.style.left = `${curX}px`;
         ghost.style.top = `${curY}px`;
       }
-      refreshHoveredTarget(curX, curY);
+      refreshHoveredTarget(rawX, rawY);
     }, { passive: false });
 
     sourceNode.addEventListener('touchend', (e) => {
@@ -1196,9 +1344,13 @@
     renderBoard();
 
     const rect = cellNode.getBoundingClientRect();
+    const vp = getLandscapeViewport();
+    const anchor = isCssLandscape()
+      ? toLandscapePoint(rect.left, (rect.top + rect.bottom) * 0.5)
+      : { x: rect.left, y: rect.bottom };
     const popWidth = 240;
-    const left = Math.min(Math.max(12, rect.left - 60), window.innerWidth - popWidth - 12);
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 135);
+    const left = Math.min(Math.max(12, anchor.x - 60), vp.width - popWidth - 12);
+    const top = Math.min(Math.max(8, anchor.y + 6), vp.height - 135);
 
     dom.slotQuickTitle.textContent = `Slot: ${positionLabel(slotEl)}`;
     dom.slotQuickModal.style.left = `${left}px`;
@@ -1772,20 +1924,42 @@
       });
     }
 
-    // Smooth Fullscreen Mode (preserves full 2D scrolling in both Portrait & Landscape!)
+    // Instant Fullscreen + Landscape Mode (on button click AND automatic on phones!)
     if (dom.btnFullscreen) {
       dom.btnFullscreen.addEventListener('click', async () => {
-        try {
-          const docEl = document.documentElement;
-          const reqFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
-          const exitFs = document.exitFullscreen || document.webkitExitFullscreen;
-          if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            if (reqFs) await reqFs.call(docEl);
-          } else if (exitFs) {
-            await exitFs.call(document);
-          }
-        } catch (_) {}
+        Sound.pickup();
+        const shouldExit = isNativeFullscreen() || (!window.__PT_IS_PHONE__ && forceLandscapeMode);
+        if (shouldExit) {
+          await exitFullscreenLandscape();
+        } else {
+          await enterFullscreenLandscape();
+        }
       });
+    }
+
+    ['fullscreenchange', 'webkitfullscreenchange', 'resize', 'orientationchange'].forEach((evtName) => {
+      const target = evtName === 'resize' || evtName === 'orientationchange' ? window : document;
+      target.addEventListener(evtName, () => {
+        if ((evtName === 'fullscreenchange' || evtName === 'webkitfullscreenchange') && !isNativeFullscreen() && !window.__PT_IS_PHONE__) {
+          forceLandscapeMode = false;
+        }
+        syncLandscapeLayout();
+      });
+    });
+
+    // On phones: automatically enter native OS Fullscreen + Landscape lock on boot AND on first user gesture!
+    if (window.__PT_IS_PHONE__) {
+      const tryPhoneAutoFullscreen = (e) => {
+        if (phoneUserExitedFs || isNativeFullscreen()) return;
+        const target = e && e.target instanceof Element ? e.target : null;
+        if (target && target.closest('#btnFullscreen, a[download], input, select, textarea')) return;
+        enterFullscreenLandscape();
+      };
+      // Attempt immediately at page load (succeeds directly inside installed PWA / TWA / APK)
+      enterFullscreenLandscape();
+      // Upgrade mobile browser tab into native OS Fullscreen + hardware Landscape on very first tap!
+      document.addEventListener('click', tryPhoneAutoFullscreen, { passive: true });
+      document.addEventListener('touchend', tryPhoneAutoFullscreen, { passive: true });
     }
 
     dom.slotQuickForm.addEventListener('submit', (e) => {
@@ -1956,6 +2130,8 @@
     state.trayOrder = shuffleArray(ELEMENTS.map((e) => e.z));
     buildPeriodicGridSkeleton();
     bindGlobalControls();
+    bindCssLandscapeTouchScroll();
+    syncLandscapeLayout();
     renderBoard();
     renderTray();
     registerServiceWorker();

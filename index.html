@@ -12,6 +12,20 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+      var shortest = Math.min(window.innerWidth || 9999, window.innerHeight || 9999);
+      var isCoarse = Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      var isPhone =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua) ||
+        (isCoarse && shortest <= 960);
+      window.__PT_IS_PHONE__ = isPhone;
+      if (isPhone && window.innerHeight > window.innerWidth) {
+        document.documentElement.classList.add('css-landscape');
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>

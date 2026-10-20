@@ -16,8 +16,10 @@ An interactive offline-ready HTML, CSS, and JavaScript application featuring a *
   1. **⚡ Live Check Mode (`Sahi / Galat`)**: Instant verification on every drop, combo streak scoring, Web Audio sound effects, and progressive chemistry hints on mistakes.
   2. **📝 Exam Sheet Mode**: Fill blank slots freely across the table, swap placed tiles, and click **Check Sahi / Galat** to grade the entire table at once.
   3. **🔬 Study Reference Mode**: Explore all 118 elements with orbital block filters (`s`, `p`, `d`, `f`), 10 category highlights, a **0 K – 6000 K Phase Simulator**, and **Animated SVG Bohr Electron Shell Diagrams**.
-- **Android Phone & Tablet First-Class UX**:
-  - Full 2D vertical + horizontal touch scrolling in both normal view and **Phone Fullscreen (`⛶`)** (Portrait & Landscape), smart touch-drag gesture lock, auto board edge-panning, and haptics.
+- **Auto Fullscreen Landscape Mode (Web + PWA + Android `.apk`)**:
+  - **On Phones**: Site opens **immediately in Landscape at frame `0`** (`css-landscape` `90deg` viewport transform when held upright) and automatically activates native OS **Fullscreen + `screen.orientation.lock('landscape')`** on boot / first touch.
+  - **Fullscreen Button (`⛶`)**: One click immediately enters native Fullscreen AND forces Landscape (`screen.orientation.lock('landscape')` + CSS Landscape fallback on portrait windows/iframes/iOS); clicking again cleanly exits Fullscreen.
+  - **PWA & Native Android `.apk`**: Configured with `"display": "fullscreen", "orientation": "landscape"` in `manifest.webmanifest` and `android:screenOrientation="sensorLandscape"` + `IMMERSIVE_STICKY` edge-to-edge fullscreen in `MainActivity`, with smooth 2D scrolling preserved everywhere.
 
 ## Project Structure
 

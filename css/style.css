@@ -2126,3 +2126,170 @@ textarea {
     gap: 5px;
   }
 }
+
+/* ==========================================================================
+   Forced Fullscreen Landscape Engine (`html.css-landscape` + `#btnFullscreen`)
+   Ensures:
+   1. On phones held in Portrait, the site opens IMMEDIATELY at 0ms in Fullscreen
+      Landscape (`100dvh × 100dvw` rotated 90deg) and upgrades to true hardware
+      OS Fullscreen + `screen.orientation.lock('landscape')` on first touch!
+   2. Clicking `#btnFullscreen` on ANY device/window/iframe switches immediately
+      into Fullscreen + Landscape!
+   ========================================================================== */
+
+#btnFullscreen.fs-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+}
+
+html.css-landscape {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+html.css-landscape body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vh;
+  height: 100vw;
+  width: 100dvh;
+  height: 100dvw;
+  margin: 0;
+  padding: 0;
+  transform-origin: top left;
+  transform: rotate(90deg) translateY(-100%);
+  overflow: hidden;
+}
+
+html.css-landscape .app-shell {
+  width: 100%;
+  height: 100%;
+  padding-top: env(safe-area-inset-right, 0px);
+  padding-left: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-bottom, 0px);
+}
+
+html.css-landscape .topbar {
+  flex-wrap: nowrap;
+  min-height: 38px;
+  padding: 4px 10px;
+  gap: 8px;
+}
+
+html.css-landscape .brand-copy p,
+html.css-landscape .stat-pill .stat-label,
+html.css-landscape .timer-pill {
+  display: none;
+}
+
+html.css-landscape .score-pill {
+  display: inline-flex;
+}
+
+html.css-landscape .mode-tabs {
+  order: 0;
+  width: auto;
+}
+
+html.css-landscape .mode-tab {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  font-size: 11.5px;
+}
+
+html.css-landscape .control-strip {
+  min-height: 34px;
+  padding: 4px 10px;
+  gap: 6px;
+}
+
+html.css-landscape .controls-left {
+  display: flex;
+  width: auto;
+  order: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+html.css-landscape #btnMobileFilters {
+  display: none !important;
+}
+
+html.css-landscape .feedback-banner {
+  flex: 1 1 220px;
+}
+
+html.css-landscape .board-wrapper {
+  padding: 6px 10px 14px;
+}
+
+html.css-landscape .periodic-grid {
+  width: 100%;
+  min-width: 740px;
+  grid-template-columns: 18px repeat(18, minmax(38px, 1fr));
+  grid-template-rows:
+    15px
+    repeat(7, 38px)
+    6px
+    repeat(2, 38px);
+  gap: 2.5px;
+}
+
+html.css-landscape .periodic-grid.mobile-fit {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 14px repeat(18, minmax(0, 1fr));
+  grid-template-rows:
+    14px
+    repeat(7, 32px)
+    5px
+    repeat(2, 32px);
+  gap: 1.5px;
+}
+
+html.css-landscape .tray-dock {
+  height: auto;
+  padding: 4px 10px calc(5px + env(safe-area-inset-left, 0px));
+}
+
+html.css-landscape .tray-header {
+  flex-wrap: nowrap;
+  margin-bottom: 4px;
+}
+
+html.css-landscape .tray-tools {
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+html.css-landscape .tray-tiles {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 82px;
+  grid-template-rows: 40px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  gap: 5px;
+}
+
+html.css-landscape .modal-backdrop {
+  align-items: center;
+  padding: 10px;
+}
+
+html.css-landscape .modal-card {
+  max-height: calc(100vw - 20px);
+  max-height: calc(100dvw - 20px);
+  border-radius: 14px;
+}
+
+html.css-landscape .install-options-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+

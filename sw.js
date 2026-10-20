@@ -1,5 +1,5 @@
 /* Periodic Table Arena — Offline-First PWA Service Worker */
-const CACHE_NAME = 'periodic-table-arena-v2';
+const CACHE_NAME = 'periodic-table-arena-v3';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
