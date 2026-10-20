@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Periodic Table Arena — Drag &amp; Drop Chemistry Lab</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Navigation & Live Scoreboard -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span class="atom-z">118</span>
+          <span class="atom-sym">Pt</span>
+        </div>
+        <div class="brand-copy">
+          <h1>Periodic Table <span>Arena</span></h1>
+          <p>Drag &amp; Drop Blank Periodic Table · Sahi / Galat Lab</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher -->
+      <nav class="mode-tabs" role="tablist" aria-label="Game Mode">
+        <button class="mode-tab active" data-mode="live" role="tab" aria-selected="true" title="Check Sahi or Galat immediately on every drop">
+          <span class="dot live-dot"></span> Live Check
+        </button>
+        <button class="mode-tab" data-mode="exam" role="tab" aria-selected="false" title="Fill blank table freely first, then check all Sahi &amp; Galat together">
+          <span class="dot exam-dot"></span> Exam Sheet
+        </button>
+        <button class="mode-tab" data-mode="study" role="tab" aria-selected="false" title="Explore complete Periodic Table, states of matter &amp; Bohr models">
+          <span class="dot study-dot"></span> Study Reference
+        </button>
+      </nav>
+
+      <!-- Live Telemetry & Settings -->
+      <div class="stats-bar">
+        <div class="stat-pill correct-pill" title="Correct placements (Sahi)">
+          <span class="stat-icon">✓</span>
+          <span class="stat-label">Sahi</span>
+          <strong id="statCorrect">0/118</strong>
+        </div>
+
+        <button class="stat-pill wrong-pill" id="btnMistakes" type="button" title="Click to view your Galat (wrong) placement log">
+          <span class="stat-icon">✗</span>
+          <span class="stat-label">Galat</span>
+          <strong id="statWrong">0</strong>
+        </button>
+
+        <div class="stat-pill streak-pill" title="Consecutive right drops">
+          <span class="stat-icon">🔥</span>
+          <strong id="statStreak">0</strong>
+        </div>
+
+        <div class="stat-pill score-pill" title="Current score">
+          <span class="stat-label">Pts</span>
+          <strong id="statScore">0</strong>
+        </div>
+
+        <div class="stat-pill timer-pill" title="Elapsed time">
+          <strong id="statTimer">00:00</strong>
+        </div>
+
+        <button class="icon-btn" id="btnSound" type="button" title="Toggle Sound Effects" aria-label="Toggle Sound Effects">
+          🔊
+        </button>
+        <button class="icon-btn" id="btnTheme" type="button" title="Switch Light / Dark Lab Theme" aria-label="Switch Theme">
+          ☀️
+        </button>
+      </div>
+    </header>
+
+    <!-- Secondary Control & Sahi/Galat Live Diagnostic Strip -->
+    <section class="control-strip" aria-label="Game Controls and Live Feedback">
+      <!-- Game Customizers (Hidden in Study Mode) -->
+      <div class="controls-left" id="playControls">
+        <label class="compact-select">
+          <span>Scope</span>
+          <select id="scopeSelect">
+            <option value="all">All 118 Elements</option>
+            <option value="first20">First 20 (Z = 1–20)</option>
+            <option value="first36">First 36 (Periods 1–4)</option>
+            <option value="sp">s &amp; p Block (Main Group)</option>
+            <option value="d">d-Block (Transition)</option>
+            <option value="f">f-Block (Lanthanide/Actinide)</option>
+          </select>
+        </label>
+
+        <label class="compact-select">
+          <span>Board Clues</span>
+          <select id="boardClueSelect">
+            <option value="blank">Pure Blank Table</option>
+            <option value="numbers">Show Atomic # (Z)</option>
+            <option value="categories">Category Outlines</option>
+          </select>
+        </label>
+
+        <label class="compact-select">
+          <span>Tile Clues</span>
+          <select id="tileClueSelect">
+            <option value="both">Symbol + Name</option>
+            <option value="symbol">Symbol Only</option>
+            <option value="name">Name Only</option>
+            <option value="config">Electron Config</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Study Mode Controls (Shown only in Study Mode) -->
+      <div class="controls-left hidden" id="studyControls">
+        <div class="block-pills" role="group" aria-label="Filter by orbital block">
+          <button type="button" class="block-pill active" data-block="all">All Blocks</button>
+          <button type="button" class="block-pill" data-block="s">s-block</button>
+          <button type="button" class="block-pill" data-block="p">p-block</button>
+          <button type="button" class="block-pill" data-block="d">d-block</button>
+          <button type="button" class="block-pill" data-block="f">f-block</button>
+        </div>
+
+        <div class="temp-control">
+          <label for="tempSlider">Temp: <strong id="tempReadout">298 K (25 °C)</strong></label>
+          <input type="range" id="tempSlider" min="0" max="6000" value="298" step="10" />
+          <button type="button" class="chip-btn" id="btnResetTemp" title="Reset to standard room temperature (298 K)">STP</button>
+        </div>
+      </div>
+
+      <!-- Live Sahi / Galat Feedback Banner -->
+      <div class="feedback-banner neutral" id="feedbackBanner" role="status" aria-live="polite">
+        <span class="feedback-badge" id="feedbackBadge">READY</span>
+        <span class="feedback-text" id="feedbackText">
+          Drag &amp; drop any element from the tray below into its correct slot on the blank Periodic Table!
+        </span>
+        <button type="button" class="feedback-action hidden" id="btnFeedbackInspect">Inspect Atom ↗</button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="controls-right">
+        <button type="button" class="action-btn check-btn hidden" id="btnCheckExam">
+          ✓ Check Sahi / Galat <span id="unverifiedCount">(0)</span>
+        </button>
+        <button type="button" class="action-btn hint-btn" id="btnHint" title="Highlight target slot for selected or next element (Shortcut: H)">
+          💡 Hint
+        </button>
+        <button type="button" class="action-btn ghost-btn" id="btnReset" title="Reset current challenge">
+          ↺ Reset
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Periodic Table Canvas -->
+    <main class="board-wrapper">
+      <div class="periodic-scroll">
+        <div class="periodic-grid" id="periodicGrid" aria-label="Periodic Table of Elements">
+          <!-- Dynamically populated by js/app.js with Group/Period axes, Valley HUD Legend, and 118 element slots -->
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Draggable Element Dock -->
+    <section class="tray-dock" id="trayDock" aria-label="Draggable Elements Tray">
+      <div class="tray-header">
+        <div class="tray-title-group">
+          <h2>Draggable Elements</h2>
+          <span class="remaining-pill" id="remainingCount">118 left</span>
+          <span class="selected-indicator hidden" id="selectedTileBanner"></span>
+        </div>
+
+        <div class="tray-tools">
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              id="traySearch"
+              placeholder="Search element, symbol, or config (e.g. Na, Iron, 3s¹)..."
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="deck-toggle" role="group" aria-label="Tray display mode">
+            <button type="button" class="chip-btn active" id="btnDeckAll" title="Show all remaining unplaced tiles">All Tiles</button>
+            <button type="button" class="chip-btn" id="btnDeckWave" title="Focus on 16 tiles at a time">Wave (16)</button>
+          </div>
+
+          <button type="button" class="chip-btn" id="btnShuffle" title="Shuffle element tiles randomly">
+            🔀 Shuffle
+          </button>
+        </div>
+      </div>
+
+      <div class="tray-tiles" id="trayTiles">
+        <!-- Draggable element cards rendered here -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Quick Slot Input Popover (when clicking a blank cell directly) -->
+  <div class="slot-quick-input hidden" id="slotQuickModal">
+    <form id="slotQuickForm" autocomplete="off">
+      <div class="quick-header">
+        <strong id="slotQuickTitle">Period 1 · Group 1</strong>
+        <button type="button" class="close-mini" id="btnCloseQuick" aria-label="Close">×</button>
+      </div>
+      <div class="quick-row">
+        <input type="text" id="slotQuickField" placeholder="Type symbol or name (e.g. Na)" maxlength="20" />
+        <button type="submit" class="quick-submit">Place</button>
+      </div>
+      <small class="quick-hint">Or drag/click any element tile from the tray below</small>
+    </form>
+  </div>
+
+  <!-- Element Inspector Modal (with SVG Bohr Electron Model) -->
+  <div class="modal-backdrop hidden" id="inspectorBackdrop" role="dialog" aria-modal="true" aria-labelledby="inspName">
+    <div class="modal-card inspector-card">
+      <button type="button" class="modal-close" id="btnCloseInspector" aria-label="Close Inspector">×</button>
+      <div class="inspector-grid">
+        <div class="bohr-panel">
+          <div class="element-hero-badge" id="inspBadge">
+            <span class="hero-z" id="inspZ">11</span>
+            <strong class="hero-sym" id="inspSym">Na</strong>
+            <span class="hero-mass" id="inspMass">22.990</span>
+          </div>
+          <div class="bohr-svg-wrap" id="bohrContainer" aria-label="Bohr Atomic Shell Diagram"></div>
+          <div class="shells-pill" id="inspShells">Shells: 2 · 8 · 1</div>
+        </div>
+
+        <div class="details-panel">
+          <div class="cat-tag" id="inspCategory">Alkali Metal</div>
+          <h2 id="inspName">Sodium</h2>
+          <p class="insp-fact" id="inspFact"></p>
+
+          <dl class="specs-grid">
+            <div><dt>Atomic Number (Z)</dt><dd id="specZ">11</dd></div>
+            <div><dt>Atomic Mass</dt><dd id="specMass">22.990 u</dd></div>
+            <div><dt>Period &amp; Group</dt><dd id="specPG">Period 3, Group 1</dd></div>
+            <div><dt>Orbital Block</dt><dd id="specBlock">s-block</dd></div>
+            <div><dt>Electron Config</dt><dd id="specConfig" class="mono">[Ne] 3s¹</dd></div>
+            <div><dt>Standard State</dt><dd id="specPhase">Solid</dd></div>
+            <div><dt>Melting / Boiling</dt><dd id="specMeltBoil">371 K / 1156 K</dd></div>
+            <div><dt>Electronegativity</dt><dd id="specEN">0.93 · Discovered 1807</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mistake History Modal ("Galat Sahi Log") -->
+  <div class="modal-backdrop hidden" id="mistakesBackdrop" role="dialog" aria-modal="true" aria-labelledby="mistakesTitle">
+    <div class="modal-card mistakes-card">
+      <button type="button" class="modal-close" id="btnCloseMistakes" aria-label="Close Mistake Log">×</button>
+      <h2 id="mistakesTitle">Galat Placement Review Log</h2>
+      <p class="modal-sub">Review every wrong attempt alongside the element’s true Periodic Table position.</p>
+      <div class="mistakes-list" id="mistakesList"></div>
+    </div>
+  </div>
+
+  <!-- Challenge Completion Modal -->
+  <div class="modal-backdrop hidden" id="winBackdrop" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <div class="modal-card win-card">
+      <button type="button" class="modal-close" id="btnCloseWin" aria-label="Close Summary">×</button>
+      <div class="win-badge">🏆 CHALLENGE COMPLETE!</div>
+      <h2 id="winTitle">Shandar! Periodic Table Mastered!</h2>
+      <p class="modal-sub" id="winSubtitle">You placed every single target element accurately.</p>
+      <div class="win-metrics">
+        <div><span>Final Score</span><strong id="winScore">0</strong></div>
+        <div><span>Accuracy</span><strong id="winAccuracy">100%</strong></div>
+        <div><span>Sahi / Galat</span><strong id="winRatio">20 / 0</strong></div>
+        <div><span>Time Taken</span><strong id="winTime">01:24</strong></div>
+      </div>
+      <div class="win-actions">
+        <button type="button" class="action-btn check-btn" id="btnPlayAgain">↻ Play Again</button>
+        <button type="button" class="action-btn ghost-btn" id="btnExploreAfterWin">🔬 Explore in Study Mode</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/elements-data.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
