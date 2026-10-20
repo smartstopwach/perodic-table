@@ -2,8 +2,15 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#090e1a" id="metaThemeColor" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Periodic Table Arena — Drag &amp; Drop Chemistry Lab</title>
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -62,7 +69,16 @@
           <strong id="statTimer">00:00</strong>
         </div>
 
-        <button class="icon-btn" id="btnSound" type="button" title="Toggle Sound Effects" aria-label="Toggle Sound Effects">
+        <button class="icon-btn mobile-only-btn" id="btnZoomToggle" type="button" title="Toggle Full Table Overview vs Thumb Zoom" aria-label="Toggle Table Zoom">
+          🗺️
+        </button>
+        <button class="icon-btn mobile-only-btn" id="btnMobileFilters" type="button" title="Open Scope &amp; Clue Settings" aria-label="Toggle Settings">
+          ⚙️
+        </button>
+        <button class="icon-btn" id="btnFullscreen" type="button" title="Fullscreen / Landscape App Mode" aria-label="Toggle Fullscreen">
+          ⛶
+        </button>
+        <button class="icon-btn" id="btnSound" type="button" title="Toggle Sound &amp; Haptics" aria-label="Toggle Sound Effects">
           🔊
         </button>
         <button class="icon-btn" id="btnTheme" type="button" title="Switch Light / Dark Lab Theme" aria-label="Switch Theme">

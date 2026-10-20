@@ -1,5 +1,6 @@
 /**
- * Lightweight Web Audio API Sound Engine (zero external audio dependencies)
+ * Lightweight Web Audio API Sound + Android Haptic Feedback Engine
+ * Zero external audio dependencies; graceful fallback everywhere.
  */
 (function () {
   'use strict';
@@ -11,6 +12,15 @@
     const saved = localStorage.getItem('pt_sound_enabled');
     if (saved !== null) enabled = saved === 'true';
   } catch (_) {}
+
+  function vibrate(pattern) {
+    if (!enabled) return;
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(pattern);
+      }
+    } catch (_) {}
+  }
 
   function getContext() {
     if (!enabled) return null;
@@ -57,23 +67,28 @@
       return this.setEnabled(!enabled);
     },
     pickup() {
+      vibrate(10);
       tone(520, 'sine', 0, 0.055, 0.05);
     },
     correct(streak = 1) {
+      vibrate([15, 25, 25]);
       const semitoneBoost = Math.min(streak - 1, 7);
-      const base = 523.25 * Math.pow(2, semitoneBoost / 12); // C5 upward
+      const base = 523.25 * Math.pow(2, semitoneBoost / 12);
       tone(base, 'triangle', 0, 0.14, 0.11);
       tone(base * 1.25, 'sine', 0.06, 0.22, 0.12);
     },
     wrong() {
+      vibrate([45, 35, 45]);
       tone(210, 'sawtooth', 0, 0.12, 0.07);
       tone(165, 'sawtooth', 0.09, 0.18, 0.07);
     },
     hint() {
+      vibrate(18);
       tone(659.25, 'sine', 0, 0.12, 0.07);
       tone(987.77, 'sine', 0.08, 0.2, 0.08);
     },
     win() {
+      vibrate([25, 40, 25, 40, 60]);
       const notes = [523.25, 659.25, 783.99, 1046.5];
       notes.forEach((n, idx) => {
         tone(n, 'triangle', idx * 0.085, 0.34, 0.12);

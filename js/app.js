@@ -67,6 +67,7 @@
 
   // DOM References
   const dom = {
+    boardWrapper: document.querySelector('.board-wrapper'),
     grid: document.getElementById('periodicGrid'),
     trayDock: document.getElementById('trayDock'),
     trayTiles: document.getElementById('trayTiles'),
@@ -100,6 +101,9 @@
     btnMnemonics: document.getElementById('btnMnemonics'),
     btnHint: document.getElementById('btnHint'),
     btnReset: document.getElementById('btnReset'),
+    btnZoomToggle: document.getElementById('btnZoomToggle'),
+    btnMobileFilters: document.getElementById('btnMobileFilters'),
+    btnFullscreen: document.getElementById('btnFullscreen'),
     btnSound: document.getElementById('btnSound'),
     btnTheme: document.getElementById('btnTheme'),
     btnMistakes: document.getElementById('btnMistakes'),
@@ -581,7 +585,7 @@
     if (state.selectedTileZ && BY_Z.get(state.selectedTileZ)) {
       const sel = BY_Z.get(state.selectedTileZ);
       dom.selectedTileBanner.classList.remove('hidden');
-      dom.selectedTileBanner.textContent = `Selected: ${sel.symbol} (${sel.name}) — click any blank slot to drop!`;
+      dom.selectedTileBanner.innerHTML = `Selected: <strong>${sel.symbol}</strong> (${sel.name}) — tap slot! <span style="margin-left:5px;text-decoration:underline;cursor:pointer">Cancel ×</span>`;
     } else {
       dom.selectedTileBanner.classList.add('hidden');
     }
@@ -796,35 +800,52 @@
     );
   }
 
+  function isTouchPrimary() {
+    return Boolean(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  }
+
   function bindTouchDrag(sourceNode, getPayloadFn, fixedLabel) {
     let ghost = null;
-    let activeTouchPayload = null;
+    let pendingPayload = null;
+    let dragActive = false;
+    let gestureCanceled = false;
+    let startX = 0;
+    let startY = 0;
+    let curX = 0;
+    let curY = 0;
     let lastHoveredCell = null;
+    let rafId = null;
 
-    sourceNode.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) return;
-      const payload = getPayloadFn();
-      if (!payload) return;
-      activeTouchPayload = payload;
-      const el = BY_Z.get(payload.z);
-      const touch = e.touches[0];
+    function updateAutoScroll() {
+      if (!dragActive || !dom.boardWrapper) return;
+      const rect = dom.boardWrapper.getBoundingClientRect();
+      const edge = 52;
+      let vx = 0;
+      let vy = 0;
 
-      ghost = document.createElement('div');
-      ghost.className = 'touch-drag-ghost';
-      ghost.innerHTML = `<strong class="tile-sym">${fixedLabel || el.symbol}</strong><span class="tile-sub">${el.name}</span>`;
-      ghost.style.left = `${touch.clientX}px`;
-      ghost.style.top = `${touch.clientY}px`;
-      document.body.appendChild(ghost);
-    }, { passive: true });
+      if (curY >= rect.top - 24 && curY <= rect.bottom + 24) {
+        if (curX < rect.left + edge) {
+          vx = -Math.min(11, Math.ceil((rect.left + edge - curX) / 5));
+        } else if (curX > rect.right - edge) {
+          vx = Math.min(11, Math.ceil((curX - (rect.right - edge)) / 5));
+        }
+        if (curY < rect.top + edge) {
+          vy = -Math.min(9, Math.ceil((rect.top + edge - curY) / 6));
+        } else if (curY > rect.bottom - edge) {
+          vy = Math.min(9, Math.ceil((curY - (rect.bottom - edge)) / 6));
+        }
+      }
 
-    sourceNode.addEventListener('touchmove', (e) => {
-      if (!ghost || !activeTouchPayload) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      ghost.style.left = `${touch.clientX}px`;
-      ghost.style.top = `${touch.clientY}px`;
+      if (vx !== 0 || vy !== 0) {
+        dom.boardWrapper.scrollLeft += vx;
+        dom.boardWrapper.scrollTop += vy;
+        refreshHoveredTarget(curX, curY);
+      }
+      rafId = requestAnimationFrame(updateAutoScroll);
+    }
 
-      const under = document.elementFromPoint(touch.clientX, touch.clientY);
+    function refreshHoveredTarget(x, y) {
+      const under = document.elementFromPoint(x, y);
       const cell = under ? under.closest('.pt-cell') : null;
       if (lastHoveredCell && lastHoveredCell !== cell) {
         lastHoveredCell.classList.remove('drag-over');
@@ -832,26 +853,104 @@
       if (cell && !cell.classList.contains('solved') && !cell.classList.contains('out-of-scope')) {
         cell.classList.add('drag-over');
         lastHoveredCell = cell;
+        const slotZ = parseInt(cell.dataset.z, 10);
+        if (BY_Z.get(slotZ)) highlightAxes(BY_Z.get(slotZ), true);
       }
+    }
+
+    function cleanupDrag() {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (lastHoveredCell) {
+        lastHoveredCell.classList.remove('drag-over');
+        lastHoveredCell = null;
+      }
+      if (ghost) {
+        ghost.remove();
+        ghost = null;
+      }
+      sourceNode.classList.remove('dragging');
+      pendingPayload = null;
+      dragActive = false;
+      gestureCanceled = false;
+    }
+
+    sourceNode.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      const payload = getPayloadFn();
+      if (!payload) return;
+
+      pendingPayload = payload;
+      dragActive = false;
+      gestureCanceled = false;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
+      curX = touch.clientX;
+      curY = touch.clientY;
+    }, { passive: true });
+
+    sourceNode.addEventListener('touchmove', (e) => {
+      if (!pendingPayload || gestureCanceled) return;
+      const touch = e.touches[0];
+      curX = touch.clientX;
+      curY = touch.clientY;
+      const dx = curX - startX;
+      const dy = curY - startY;
+
+      if (!dragActive) {
+        const dist = Math.hypot(dx, dy);
+        if (dist < 8) return;
+
+        // If finger starts on the tray and swipes sideways, let native Android scroll run smoothly!
+        if (pendingPayload.fromSlotZ === null && Math.abs(dx) > Math.abs(dy) * 1.15) {
+          gestureCanceled = true;
+          pendingPayload = null;
+          return;
+        }
+
+        // Engage Touch Drag Mode!
+        dragActive = true;
+        const el = BY_Z.get(pendingPayload.z);
+        sourceNode.classList.add('dragging');
+        Sound.pickup();
+
+        ghost = document.createElement('div');
+        ghost.className = 'touch-drag-ghost';
+        ghost.innerHTML = `<strong class="tile-sym">${fixedLabel || el.symbol}</strong><span class="tile-sub">${el.name}</span>`;
+        ghost.style.left = `${curX}px`;
+        ghost.style.top = `${curY}px`;
+        document.body.appendChild(ghost);
+        rafId = requestAnimationFrame(updateAutoScroll);
+      }
+
+      e.preventDefault();
+      if (ghost) {
+        ghost.style.left = `${curX}px`;
+        ghost.style.top = `${curY}px`;
+      }
+      refreshHoveredTarget(curX, curY);
     }, { passive: false });
 
     sourceNode.addEventListener('touchend', (e) => {
-      if (!ghost || !activeTouchPayload) return;
+      if (!dragActive || !pendingPayload) {
+        cleanupDrag();
+        return;
+      }
       const touch = e.changedTouches[0];
-      if (lastHoveredCell) lastHoveredCell.classList.remove('drag-over');
-      ghost.remove();
-      ghost = null;
+      const payload = pendingPayload;
+      cleanupDrag();
 
       const under = document.elementFromPoint(touch.clientX, touch.clientY);
       const cell = under ? under.closest('.pt-cell') : null;
-      const payload = activeTouchPayload;
-      activeTouchPayload = null;
-      lastHoveredCell = null;
-
       if (cell && cell.dataset.z) {
         handleDropAttempt(parseInt(cell.dataset.z, 10), payload.z, payload.fromSlotZ);
       }
     });
+
+    sourceNode.addEventListener('touchcancel', cleanupDrag);
   }
 
   /* ========================================================================
@@ -1111,20 +1210,37 @@
   }
 
   function openQuickSlotPopover(slotEl, cellNode) {
+    // Tapping an already-selected blank cell a second time cancels cleanly
+    if (state.selectedSlotZ === slotEl.z) {
+      closeQuickSlotPopover();
+      return;
+    }
+
     state.selectedSlotZ = slotEl.z;
     renderBoard();
 
     const rect = cellNode.getBoundingClientRect();
     const popWidth = 240;
     const left = Math.min(Math.max(12, rect.left - 60), window.innerWidth - popWidth - 12);
-    const top = Math.min(rect.bottom + 6, window.innerHeight - 125);
+    const top = Math.min(rect.bottom + 6, window.innerHeight - 135);
 
     dom.slotQuickTitle.textContent = `Slot: ${positionLabel(slotEl)}`;
     dom.slotQuickModal.style.left = `${left}px`;
     dom.slotQuickModal.style.top = `${top}px`;
     dom.slotQuickModal.classList.remove('hidden');
     dom.slotQuickField.value = '';
-    setTimeout(() => dom.slotQuickField.focus(), 10);
+
+    // Avoid auto-opening soft keyboard on Android/Tablet touchscreens unless user taps input directly!
+    if (!isTouchPrimary()) {
+      setTimeout(() => dom.slotQuickField.focus(), 10);
+    } else {
+      Sound.pickup();
+      setFeedback(
+        'neutral',
+        'SLOT SELECTED',
+        `Selected ${positionLabel(slotEl)} — tap any element tile below to drop here, or type in the box!`
+      );
+    }
   }
 
   function closeQuickSlotPopover() {
@@ -1501,6 +1617,10 @@
     const syncThemeIcon = () => {
       const current = document.documentElement.getAttribute('data-theme') || 'dark';
       dom.btnTheme.textContent = current === 'dark' ? '☀️' : '🌙';
+      const metaTheme = document.getElementById('metaThemeColor');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', current === 'dark' ? '#090e1a' : '#f1f5f9');
+      }
     };
     syncThemeIcon();
 
@@ -1513,6 +1633,49 @@
       } catch (_) {}
       syncThemeIcon();
     });
+
+    // Tap Selected Tile Banner to cancel selection cleanly
+    dom.selectedTileBanner.addEventListener('click', () => {
+      state.selectedTileZ = null;
+      Sound.pickup();
+      renderTray();
+    });
+
+    // Mobile Full-Map vs Thumb-Zoom Toggle
+    if (dom.btnZoomToggle) {
+      dom.btnZoomToggle.addEventListener('click', () => {
+        const isFit = dom.grid.classList.toggle('mobile-fit');
+        dom.btnZoomToggle.textContent = isFit ? '🔍' : '🗺️';
+        dom.btnZoomToggle.title = isFit ? 'Switch to Thumb Comfort Zoom' : 'Switch to Full 18-Column Overview';
+        Sound.pickup();
+      });
+    }
+
+    // Mobile Collapsible Scope & Clue Settings Bar
+    if (dom.btnMobileFilters) {
+      dom.btnMobileFilters.addEventListener('click', () => {
+        const activePanel = state.mode === 'study' ? dom.studyControls : dom.playControls;
+        const opened = activePanel.classList.toggle('mobile-open');
+        dom.btnMobileFilters.style.borderColor = opened ? 'var(--accent)' : '';
+        Sound.pickup();
+      });
+    }
+
+    // Android / Tablet Fullscreen + Landscape App Mode Toggle
+    if (dom.btnFullscreen) {
+      dom.btnFullscreen.addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+            if (screen.orientation && typeof screen.orientation.lock === 'function') {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (_) {}
+      });
+    }
 
     // Quick Slot Keyboard Form Submit
     dom.slotQuickForm.addEventListener('submit', (e) => {

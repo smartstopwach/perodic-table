@@ -13,7 +13,10 @@ An interactive HTML, CSS, and JavaScript web application featuring a **blank 118
   - Scopes: *All 118 Elements*, *First 20 (Z = 1–20)*, *First 36 (Periods 1–4)*, *s & p Block*, *d-Block*, and *f-Block*.
   - Board Clues: *Pure Blank Table*, *Show Atomic Numbers (Z)*, or *Category Color Outlines*.
   - Tile Clues: *Symbol + Name*, *Symbol Only*, *Name Only*, or *Electron Configuration*.
-- **Multi-Modal Controls**: Desktop HTML5 drag & drop, mobile touch-drag ghosting, click-tile-then-click-slot placement, quick keyboard slot entry, and **Dark Lab / Light Classroom** theme toggle.
+- **Android, iPad & Tablet First-Class Experience**:
+  - **Dynamic `100dvh` + Notch Safe-Area Layout** (`env(safe-area-inset-*)`) across Portrait Phones, Landscape Phones, and Tablets (`768px–1180px`).
+  - **Smart Touch-Drag Engine**: Gesture direction lock allows buttery-smooth native scrolling on horizontal swipes while lifting floating element ghosts on upward pulls, plus **automatic 60fps board edge-panning** when dragging across columns.
+  - **1-Tap Full Map vs Comfort Zoom (`🗺️ / 🔍`)**, **Fullscreen Landscape Mode (`⛶`)**, **Android Haptic Feedback (`navigator.vibrate`)**, and **Installable Standalone PWA (`manifest.webmanifest`)**.
 
 ## Project Structure
 
