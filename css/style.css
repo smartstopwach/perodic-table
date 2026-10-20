@@ -1283,10 +1283,20 @@ input {
 }
 
 .insp-fact {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
+}
+
+.insp-mnem-box {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: var(--warning-soft);
+  border-left: 3px solid var(--warning);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .specs-grid {
@@ -1345,6 +1355,127 @@ input {
   background: var(--bg-elevated);
   border-left: 3px solid var(--wrong);
   font-size: 12.5px;
+}
+
+/* Desi Mnemonics Trainer Modal */
+.mnemonics-card {
+  max-width: 800px;
+}
+
+.mnem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 38px;
+  margin-bottom: 12px;
+}
+
+.mnem-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.mnem-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mnem-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.mnem-series-card {
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+}
+
+.mnem-series-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: 5px;
+  margin-bottom: 6px;
+}
+
+.mnem-line {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mnem-pairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mnem-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 62px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-slot);
+  cursor: pointer;
+  transition: border-color 0.14s, transform 0.14s, background 0.14s;
+}
+
+.mnem-chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.mnem-chip.masked .mnem-chip-sym,
+.mnem-chip.masked .mnem-chip-top {
+  filter: blur(5px);
+  user-select: none;
+}
+
+.mnem-chip.revealed {
+  border-color: var(--correct);
+  background: var(--correct-soft);
+}
+
+.mnem-chip-top {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.mnem-chip-sym {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.mnem-chip-word {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.mnem-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--text-secondary);
 }
 
 /* Completion Summary Modal */

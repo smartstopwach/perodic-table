@@ -138,6 +138,9 @@
         <button type="button" class="action-btn check-btn hidden" id="btnCheckExam">
           ✓ Check Sahi / Galat <span id="unverifiedCount">(0)</span>
         </button>
+        <button type="button" class="action-btn ghost-btn" id="btnMnemonics" title="Open Desi Hinglish Mnemonics Trainer (Shortcut: M)">
+          🧠 Mnemonics
+        </button>
         <button type="button" class="action-btn hint-btn" id="btnHint" title="Highlight target slot for selected or next element (Shortcut: H)">
           💡 Hint
         </button>
@@ -227,6 +230,7 @@
           <div class="cat-tag" id="inspCategory">Alkali Metal</div>
           <h2 id="inspName">Sodium</h2>
           <p class="insp-fact" id="inspFact"></p>
+          <div class="insp-mnem-box hidden" id="inspMnemonic"></div>
 
           <dl class="specs-grid">
             <div><dt>Atomic Number (Z)</dt><dd id="specZ">11</dd></div>
@@ -273,7 +277,36 @@
     </div>
   </div>
 
+  <!-- Desi Mnemonics Trainer Modal -->
+  <div class="modal-backdrop hidden" id="mnemonicsBackdrop" role="dialog" aria-modal="true" aria-labelledby="mnemonicsTitle">
+    <div class="modal-card mnemonics-card">
+      <button type="button" class="modal-close" id="btnCloseMnemonics" aria-label="Close Mnemonics">×</button>
+      <div class="mnem-header">
+        <div>
+          <h2 id="mnemonicsTitle" style="margin:0;font-size:20px">🧠 Desi Periodic Table Mnemonics</h2>
+          <p class="modal-sub" style="margin:3px 0 0">Click any chip to inspect its Bohr model, or toggle Self-Test to quiz symbols word-by-word!</p>
+        </div>
+        <div class="mnem-header-actions">
+          <button type="button" class="chip-btn" id="btnMnemSelfTest" title="Hide symbols and click chips to flip &amp; test yourself!">
+            🙈 Self-Test
+          </button>
+          <button type="button" class="action-btn check-btn" id="btnPracticeBlock">🎯 Practice d-Block Now</button>
+        </div>
+      </div>
+
+      <div class="mnem-tabs" role="tablist">
+        <button type="button" class="block-pill active" data-mnem-tab="d">d-Block (Row-wise 3d–6d)</button>
+        <button type="button" class="block-pill" data-mnem-tab="d_groups">d-Block (Column G3–G12)</button>
+        <button type="button" class="block-pill" data-mnem-tab="sp">s &amp; p Block (Groups 1–18)</button>
+        <button type="button" class="block-pill" data-mnem-tab="f">f-Block (Lanthanide &amp; Actinide)</button>
+      </div>
+
+      <div class="mnem-body" id="mnemonicsBody"></div>
+    </div>
+  </div>
+
   <script src="js/elements-data.js"></script>
+  <script src="js/mnemonics-data.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/app.js"></script>
 </body>

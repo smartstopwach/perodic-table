@@ -10,6 +10,7 @@
   'use strict';
 
   const { ELEMENTS, CATEGORIES } = window.PERIODIC_DATA;
+  const MNEMONICS = window.MNEMONICS_DATA || { TABS: {}, BY_ELEMENT_Z: new Map() };
   const Sound = window.SoundFX;
 
   // Lookup maps
@@ -51,6 +52,8 @@
     selectedSlotZ: null,       // clicked blank cell for quick input
     hintTargetZ: null,
     lastInspectedZ: 1,
+    mnemTab: 'd',
+    mnemSelfTest: false,
 
     wrongAttemptsPerZ: new Map(),
     mistakes: [],
@@ -94,6 +97,7 @@
 
     btnCheckExam: document.getElementById('btnCheckExam'),
     unverifiedCount: document.getElementById('unverifiedCount'),
+    btnMnemonics: document.getElementById('btnMnemonics'),
     btnHint: document.getElementById('btnHint'),
     btnReset: document.getElementById('btnReset'),
     btnSound: document.getElementById('btnSound'),
@@ -117,7 +121,13 @@
     winBackdrop: document.getElementById('winBackdrop'),
     btnCloseWin: document.getElementById('btnCloseWin'),
     btnPlayAgain: document.getElementById('btnPlayAgain'),
-    btnExploreAfterWin: document.getElementById('btnExploreAfterWin')
+    btnExploreAfterWin: document.getElementById('btnExploreAfterWin'),
+
+    mnemonicsBackdrop: document.getElementById('mnemonicsBackdrop'),
+    btnCloseMnemonics: document.getElementById('btnCloseMnemonics'),
+    btnMnemSelfTest: document.getElementById('btnMnemSelfTest'),
+    btnPracticeBlock: document.getElementById('btnPracticeBlock'),
+    mnemonicsBody: document.getElementById('mnemonicsBody')
   };
 
   // Cell & Axis lookup maps
@@ -174,23 +184,18 @@
   }
 
   function buildSmartHint(el, wrongCountForEl) {
+    const mnem = MNEMONICS.BY_ELEMENT_Z.get(el.z);
     if (wrongCountForEl >= 3) {
       return `Exact spot: ${positionLabel(el)} (${el.categoryLabel}, Z=${el.z}).`;
     }
     if (wrongCountForEl === 2) {
-      if (el.category === 'lanthanide') {
-        return `Closer clue: ${el.symbol} is #${el.z - 56} in the 6* Lanthanide row (Z=${el.z})!`;
-      }
-      if (el.category === 'actinide') {
-        return `Closer clue: ${el.symbol} is #${el.z - 88} in the 7* Actinide row (Z=${el.z})!`;
+      if (mnem) {
+        return `Trick (${mnem.seriesBadge}): ${mnem.highlighted}`;
       }
       return `Closer clue: ${el.symbol} (Z=${el.z}) sits in Period ${el.period} inside the ${el.block}-block!`;
     }
-    if (el.category === 'lanthanide') {
-      return `${el.symbol} (Z=${el.z}) is a Lanthanide — look in the 6* f-block row below!`;
-    }
-    if (el.category === 'actinide') {
-      return `${el.symbol} (Z=${el.z}) is an Actinide — look in the 7* f-block row below!`;
+    if (mnem) {
+      return `Z=${el.z} (${el.block}-block) · Word Clue: "${mnem.word}" in "${mnem.line}"`;
     }
     return `${el.symbol} has Atomic Number Z=${el.z} (${el.categoryLabel}, ${el.block}-block).`;
   }
@@ -1191,6 +1196,16 @@
 
     document.getElementById('inspName').textContent = `${el.name} (${el.symbol})`;
     document.getElementById('inspFact').textContent = el.fact;
+
+    const inspMnemEl = document.getElementById('inspMnemonic');
+    const mnemInfo = MNEMONICS.BY_ELEMENT_Z.get(el.z);
+    if (inspMnemEl && mnemInfo) {
+      inspMnemEl.classList.remove('hidden');
+      inspMnemEl.innerHTML = `<strong>🧠 ${mnemInfo.seriesBadge}:</strong> "${mnemInfo.word}" → <span>${mnemInfo.line}</span>`;
+    } else if (inspMnemEl) {
+      inspMnemEl.classList.add('hidden');
+    }
+
     document.getElementById('inspShells').textContent = `Shells: ${el.shells.join(' · ')}`;
     document.getElementById('bohrContainer').innerHTML = buildBohrSVG(el);
 
@@ -1233,6 +1248,69 @@
       });
     }
     dom.mistakesBackdrop.classList.remove('hidden');
+  }
+
+  function renderMnemonicsBody() {
+    const tabData = MNEMONICS.TABS[state.mnemTab];
+    if (!tabData || !dom.mnemonicsBody) return;
+
+    document.querySelectorAll('[data-mnem-tab]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.mnemTab === state.mnemTab);
+    });
+
+    if (dom.btnPracticeBlock) {
+      dom.btnPracticeBlock.textContent = tabData.practiceLabel;
+    }
+    if (dom.btnMnemSelfTest) {
+      dom.btnMnemSelfTest.classList.toggle('active', state.mnemSelfTest);
+      dom.btnMnemSelfTest.textContent = state.mnemSelfTest ? '👁️ Show All Symbols' : '🙈 Self-Test';
+    }
+
+    dom.mnemonicsBody.innerHTML = '';
+    tabData.series.forEach((s) => {
+      const card = document.createElement('div');
+      card.className = 'mnem-series-card';
+
+      const pairsHtml = s.pairs
+        .map(
+          ([sym, z, word]) => `
+          <div class="mnem-chip ${state.mnemSelfTest ? 'masked' : ''}" data-mnem-z="${z}" title="Click to ${state.mnemSelfTest ? 'reveal symbol' : `inspect ${sym} (Z=${z})`}">
+            <span class="mnem-chip-top">${z}</span>
+            <span class="mnem-chip-sym">${sym}</span>
+            <span class="mnem-chip-word">${word}</span>
+          </div>
+        `
+        )
+        .join('');
+
+      card.innerHTML = `
+        <span class="mnem-series-badge">${s.badge}</span>
+        <p class="mnem-line">“${s.line}”</p>
+        <div class="mnem-pairs">${pairsHtml}</div>
+        <p class="mnem-note">💡 ${s.note}</p>
+      `;
+      dom.mnemonicsBody.appendChild(card);
+    });
+
+    dom.mnemonicsBody.querySelectorAll('.mnem-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const z = parseInt(chip.dataset.mnemZ, 10);
+        if (state.mnemSelfTest && chip.classList.contains('masked')) {
+          chip.classList.remove('masked');
+          chip.classList.add('revealed');
+          Sound.correct(1);
+          return;
+        }
+        dom.mnemonicsBackdrop.classList.add('hidden');
+        openInspector(z);
+      });
+    });
+  }
+
+  function openMnemonicsModal(defaultTab = state.mnemTab) {
+    state.mnemTab = defaultTab || 'd';
+    renderMnemonicsBody();
+    dom.mnemonicsBackdrop.classList.remove('hidden');
   }
 
   /* ========================================================================
@@ -1369,6 +1447,9 @@
     });
 
     dom.btnCheckExam.addEventListener('click', checkExamSheet);
+    if (dom.btnMnemonics) {
+      dom.btnMnemonics.addEventListener('click', () => openMnemonicsModal(state.mnemTab));
+    }
     dom.btnHint.addEventListener('click', triggerHint);
     dom.btnReset.addEventListener('click', resetChallenge);
 
@@ -1463,13 +1544,43 @@
     dom.btnCloseInspector.addEventListener('click', () => dom.inspectorBackdrop.classList.add('hidden'));
     dom.btnCloseMistakes.addEventListener('click', () => dom.mistakesBackdrop.classList.add('hidden'));
     dom.btnCloseWin.addEventListener('click', () => dom.winBackdrop.classList.add('hidden'));
+    if (dom.btnCloseMnemonics) {
+      dom.btnCloseMnemonics.addEventListener('click', () => dom.mnemonicsBackdrop.classList.add('hidden'));
+    }
+    if (dom.btnMnemSelfTest) {
+      dom.btnMnemSelfTest.addEventListener('click', () => {
+        state.mnemSelfTest = !state.mnemSelfTest;
+        Sound.pickup();
+        renderMnemonicsBody();
+      });
+    }
+    if (dom.btnPracticeBlock) {
+      dom.btnPracticeBlock.addEventListener('click', () => {
+        const tabData = MNEMONICS.TABS[state.mnemTab];
+        const targetScope = tabData ? tabData.practiceScope : 'd';
+        dom.mnemonicsBackdrop.classList.add('hidden');
+        if (state.mode === 'study') setMode('live');
+        dom.scopeSelect.value = targetScope;
+        state.scope = targetScope;
+        resetChallenge();
+      });
+    }
+    document.querySelectorAll('[data-mnem-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.mnemTab = btn.dataset.mnemTab;
+        Sound.pickup();
+        renderMnemonicsBody();
+      });
+    });
+
     dom.btnPlayAgain.addEventListener('click', resetChallenge);
     dom.btnExploreAfterWin.addEventListener('click', () => {
       dom.winBackdrop.classList.add('hidden');
       setMode('study');
     });
 
-    [dom.inspectorBackdrop, dom.mistakesBackdrop, dom.winBackdrop].forEach((backdrop) => {
+    [dom.inspectorBackdrop, dom.mistakesBackdrop, dom.winBackdrop, dom.mnemonicsBackdrop].forEach((backdrop) => {
+      if (!backdrop) return;
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) backdrop.classList.add('hidden');
       });
@@ -1482,6 +1593,7 @@
         dom.inspectorBackdrop.classList.add('hidden');
         dom.mistakesBackdrop.classList.add('hidden');
         dom.winBackdrop.classList.add('hidden');
+        if (dom.mnemonicsBackdrop) dom.mnemonicsBackdrop.classList.add('hidden');
         if (state.selectedTileZ !== null) {
           state.selectedTileZ = null;
           renderTray();
@@ -1494,6 +1606,8 @@
 
       if (e.key === 'h' || e.key === 'H') {
         triggerHint();
+      } else if (e.key === 'm' || e.key === 'M') {
+        openMnemonicsModal(state.mnemTab);
       } else if (e.key === 'Enter' && state.mode === 'exam') {
         checkExamSheet();
       }
