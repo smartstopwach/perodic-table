@@ -325,6 +325,17 @@ textarea {
   border-color: var(--border-strong);
 }
 
+.install-top-btn {
+  background: var(--correct-soft);
+  border-color: var(--correct);
+  color: var(--correct);
+}
+.install-top-btn:hover {
+  background: var(--correct);
+  color: #ffffff;
+  border-color: var(--correct);
+}
+
 /* ==========================================================================
    Secondary Control & Live Sahi/Galat Strip
    ========================================================================== */
@@ -1632,6 +1643,91 @@ textarea {
   justify-content: flex-end;
 }
 
+/* Download App (APK + PWA) Modal */
+.install-card {
+  max-width: 620px;
+}
+
+.install-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 36px;
+  margin-bottom: 16px;
+}
+
+.install-app-logo {
+  border-radius: 14px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.install-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.install-opt-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-slot);
+}
+
+.install-opt-box h3 {
+  margin: 8px 0 6px;
+  font-size: 15.5px;
+  font-weight: 800;
+}
+
+.install-opt-box p {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.install-tag {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.apk-tag {
+  background: var(--correct-soft);
+  color: var(--correct);
+}
+
+.pwa-tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.install-full-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 12px;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.install-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
 /* Completion Summary Modal */
 .win-card {
   max-width: 500px;
@@ -1962,7 +2058,8 @@ textarea {
   }
 
   .inspector-grid,
-  .specs-grid {
+  .specs-grid,
+  .install-options-grid {
     grid-template-columns: 1fr;
   }
 

@@ -102,6 +102,7 @@
     btnMnemonics: document.getElementById('btnMnemonics'),
     btnHint: document.getElementById('btnHint'),
     btnReset: document.getElementById('btnReset'),
+    btnInstallApp: document.getElementById('btnInstallApp'),
     btnZoomToggle: document.getElementById('btnZoomToggle'),
     btnMobileFilters: document.getElementById('btnMobileFilters'),
     btnFullscreen: document.getElementById('btnFullscreen'),
@@ -133,8 +134,16 @@
     btnCloseMnemonics: document.getElementById('btnCloseMnemonics'),
     btnMnemSelfTest: document.getElementById('btnMnemSelfTest'),
     btnPracticeBlock: document.getElementById('btnPracticeBlock'),
-    mnemonicsBody: document.getElementById('mnemonicsBody')
+    mnemonicsBody: document.getElementById('mnemonicsBody'),
+
+    installBackdrop: document.getElementById('installBackdrop'),
+    btnCloseInstall: document.getElementById('btnCloseInstall'),
+    btnTriggerPwa: document.getElementById('btnTriggerPwa'),
+    pwaStatusNote: document.getElementById('pwaStatusNote'),
+    linkDownloadApk: document.getElementById('linkDownloadApk')
   };
+
+  let deferredInstallPrompt = null;
 
   const cellElements = new Map();
   const groupHeaders = new Map();
@@ -1843,7 +1852,64 @@
       setMode('study');
     });
 
-    [dom.inspectorBackdrop, dom.mistakesBackdrop, dom.winBackdrop, dom.mnemonicsBackdrop].forEach((backdrop) => {
+    // Download App / PWA + APK Modal Handlers
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (dom.pwaStatusNote) {
+        dom.pwaStatusNote.textContent = '✓ Ready for instant 1-tap install on your device!';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      if (dom.installBackdrop) dom.installBackdrop.classList.add('hidden');
+      setFeedback('correct', '✓ INSTALLED!', 'Periodic Table Arena has been installed on your Home Screen!');
+    });
+
+    // Hide download button automatically when running inside installed standalone APK (file://)
+    if (dom.btnInstallApp) {
+      if (window.location.protocol === 'file:') {
+        dom.btnInstallApp.classList.add('hidden');
+      } else {
+        dom.btnInstallApp.addEventListener('click', () => {
+          Sound.pickup();
+          dom.installBackdrop.classList.remove('hidden');
+        });
+      }
+    }
+
+    if (dom.btnCloseInstall) {
+      dom.btnCloseInstall.addEventListener('click', () => dom.installBackdrop.classList.add('hidden'));
+    }
+
+    if (dom.linkDownloadApk) {
+      dom.linkDownloadApk.addEventListener('click', () => {
+        Sound.correct(1);
+        setFeedback('correct', '⬇ APK DOWNLOAD', 'Downloading Periodic-Table-Arena.apk — open the downloaded file on Android to install!');
+      });
+    }
+
+    if (dom.btnTriggerPwa) {
+      dom.btnTriggerPwa.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          try {
+            await deferredInstallPrompt.userChoice;
+          } catch (_) {}
+          deferredInstallPrompt = null;
+          return;
+        }
+        if (dom.pwaStatusNote) {
+          dom.pwaStatusNote.innerHTML =
+            '<strong>How to install now:</strong> Browser menu <strong>(⋮ or Share)</strong> kholein aur <strong>"Install app / Add to Home screen"</strong> select karein!';
+          dom.pwaStatusNote.style.color = 'var(--accent)';
+        }
+        Sound.hint();
+      });
+    }
+
+    [dom.inspectorBackdrop, dom.mistakesBackdrop, dom.winBackdrop, dom.mnemonicsBackdrop, dom.installBackdrop].forEach((backdrop) => {
       if (!backdrop) return;
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) backdrop.classList.add('hidden');
@@ -1857,6 +1923,7 @@
         dom.mistakesBackdrop.classList.add('hidden');
         dom.winBackdrop.classList.add('hidden');
         if (dom.mnemonicsBackdrop) dom.mnemonicsBackdrop.classList.add('hidden');
+        if (dom.installBackdrop) dom.installBackdrop.classList.add('hidden');
         if (state.selectedTileZ !== null) {
           state.selectedTileZ = null;
           renderTray();
@@ -1877,12 +1944,21 @@
     });
   }
 
+  function registerServiceWorker() {
+    if ('serviceWorker' in navigator && /^https?:$/i.test(window.location.protocol)) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  }
+
   function init() {
     state.trayOrder = shuffleArray(ELEMENTS.map((e) => e.z));
     buildPeriodicGridSkeleton();
     bindGlobalControls();
     renderBoard();
     renderTray();
+    registerServiceWorker();
   }
 
   init();

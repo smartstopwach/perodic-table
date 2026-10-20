@@ -8,8 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Periodic Table Arena — Drag &amp; Drop Chemistry Lab</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
-  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -68,6 +69,14 @@
         <div class="stat-pill timer-pill" title="Elapsed time">
           <strong id="statTimer">00:00</strong>
         </div>
+
+        <button class="icon-btn install-top-btn" id="btnInstallApp" type="button" title="Download App (PWA / Android APK)" aria-label="Download App">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+        </button>
 
         <button class="icon-btn mobile-only-btn" id="btnZoomToggle" type="button" title="Toggle Full Table Overview vs Thumb Zoom" aria-label="Toggle Table Zoom">
           🗺️
@@ -322,6 +331,44 @@
       </div>
 
       <div class="mnem-body" id="mnemonicsBody"></div>
+    </div>
+  </div>
+
+  <!-- Download App / PWA & Android APK Modal -->
+  <div class="modal-backdrop hidden" id="installBackdrop" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="modal-card install-card">
+      <button type="button" class="modal-close" id="btnCloseInstall" aria-label="Close Download Menu">×</button>
+      <div class="install-hero">
+        <img src="icons/icon-192.png" alt="Periodic Lab Icon" width="56" height="56" class="install-app-logo" />
+        <div>
+          <h2 id="installTitle" style="margin:0;font-size:20px">📲 Download Periodic Table Arena</h2>
+          <p class="modal-sub" style="margin:3px 0 0">Apne Android Phone, Tablet ya PC par Offline App ki tarah install karein!</p>
+        </div>
+      </div>
+
+      <div class="install-options-grid">
+        <!-- Option 1: Direct Android APK Download -->
+        <div class="install-opt-box apk-box">
+          <span class="install-tag apk-tag">ANDROID .APK FILE</span>
+          <h3>📦 Download Android APK</h3>
+          <p>Seedha standalone <strong>.apk file</strong> download karke install karein — bina internet ke <strong>100% Offline</strong> chalta hai!</p>
+          <a href="download/Periodic-Table-Arena.apk" download="Periodic-Table-Arena.apk" class="action-btn check-btn install-full-btn" id="linkDownloadApk">
+            ⬇ Download APK (Android)
+          </a>
+          <small class="install-note">Tip: Install karte waqt Android "Unknown App / Play Protect" puche toh <strong>"Install anyway"</strong> tap karein.</small>
+        </div>
+
+        <!-- Option 2: Native One-Tap PWA App Install -->
+        <div class="install-opt-box pwa-box">
+          <span class="install-tag pwa-tag">CHROME / iOS / PC PWA</span>
+          <h3>⚡ Instant PWA Install</h3>
+          <p>Zero security warning ke saath 1-tap mein Home Screen &amp; App Drawer par native WebApp install karein!</p>
+          <button type="button" class="action-btn ghost-btn install-full-btn" id="btnTriggerPwa" style="border-color:var(--accent);color:var(--accent)">
+            📲 Install PWA App Now
+          </button>
+          <small class="install-note" id="pwaStatusNote">Works offline on Android Chrome, Edge, iPad &amp; Desktop.</small>
+        </div>
+      </div>
     </div>
   </div>
 
