@@ -1,6 +1,6 @@
 /**
- * Lightweight Web Audio API Sound + Android Haptic Feedback Engine
- * Zero external audio dependencies; graceful fallback everywhere.
+ * Pro Web Audio Synthesizer + Voice Pronunciation + Android Haptics Engine
+ * Zero external audio files required; full offline synthesis + Web Speech TTS.
  */
 (function () {
   'use strict';
@@ -52,6 +52,23 @@
     osc.stop(now + duration + 0.02);
   }
 
+  function speak(text) {
+    try {
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        return false;
+      }
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = 0.96;
+      utter.pitch = 1.02;
+      utter.lang = 'en-IN';
+      window.speechSynthesis.speak(utter);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   window.SoundFX = {
     isEnabled() {
       return enabled;
@@ -68,7 +85,10 @@
     },
     pickup() {
       vibrate(10);
-      tone(520, 'sine', 0, 0.055, 0.05);
+      tone(540, 'sine', 0, 0.055, 0.05);
+    },
+    tick() {
+      tone(880, 'sine', 0, 0.035, 0.028);
     },
     correct(streak = 1) {
       vibrate([15, 25, 25]);
@@ -87,12 +107,19 @@
       tone(659.25, 'sine', 0, 0.12, 0.07);
       tone(987.77, 'sine', 0.08, 0.2, 0.08);
     },
+    levelUp() {
+      vibrate([20, 30, 20, 30, 50]);
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((n, idx) => {
+        tone(n, 'triangle', idx * 0.07, 0.3, 0.13);
+      });
+    },
     win() {
       vibrate([25, 40, 25, 40, 60]);
       const notes = [523.25, 659.25, 783.99, 1046.5];
       notes.forEach((n, idx) => {
         tone(n, 'triangle', idx * 0.085, 0.34, 0.12);
       });
-    }
+    },
+    speak
   };
 })();

@@ -1,14 +1,18 @@
-/* Periodic Table Arena — Offline-First PWA Service Worker */
-const CACHE_NAME = 'periodic-table-arena-v3';
+/* Periodic Lab PRO v2.0 — Offline-First PWA Service Worker */
+const CACHE_NAME = 'periodic-table-arena-pro-v4';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
+  './privacy-policy.html',
   './manifest.webmanifest',
   './css/style.css',
+  './css/pro-lab.css',
   './js/elements-data.js',
+  './js/chemistry-pro-data.js',
   './js/mnemonics-data.js',
   './js/sound.js',
   './js/app.js',
+  './js/pro-lab.js',
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -37,7 +41,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Do not cache large APK downloads unnecessarily unless requested
   const url = new URL(event.request.url);
   if (url.pathname.endsWith('.apk')) return;
 

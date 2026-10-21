@@ -691,10 +691,11 @@
       btn.classList.toggle('active', btn.dataset.category === state.activeCategory);
     });
     updateStatsUI();
+    window.dispatchEvent(new CustomEvent('pt:boardrender', { detail: { mode: state.mode } }));
   }
 
   function renderTray() {
-    if (state.mode === 'study') {
+    if (state.mode === 'study' || state.mode === 'quiz' || state.mode === 'lab') {
       dom.trayDock.classList.add('hidden');
       return;
     }
@@ -1137,6 +1138,7 @@
 
       Sound.correct(state.streak);
       renderSingleCell(slotEl);
+      window.dispatchEvent(new CustomEvent('pt:correct', { detail: { z: slotZ, streak: state.streak, count: 1 } }));
       const cell = cellElements.get(slotZ);
       if (cell) {
         cell.classList.add('just-solved');
@@ -1241,6 +1243,10 @@
       }
     });
 
+    if (newlyRight > 0) {
+      window.dispatchEvent(new CustomEvent('pt:correct', { detail: { z: null, streak: state.streak, count: newlyRight } }));
+    }
+
     if (newlyWrong === 0 && newlyRight > 0) {
       Sound.correct(3);
       setFeedback('correct', '✓ ALL SAHI!', `Shandar! Every checked element (${newlyRight}) is 100% Sahi and locked in green!`);
@@ -1285,6 +1291,7 @@
       `You completed all ${targets.length} elements in "${dom.scopeSelect.options[dom.scopeSelect.selectedIndex].text}"!`;
 
     dom.winBackdrop.classList.remove('hidden');
+    window.dispatchEvent(new CustomEvent('pt:win', { detail: { count: targets.length, score: state.score } }));
   }
 
   /* ========================================================================
@@ -1459,7 +1466,9 @@
     document.getElementById('specEN').textContent =
       `${el.electronegativity ?? '—'} · Discovered ${el.year}`;
 
+    state.lastInspectedZ = el.z;
     dom.inspectorBackdrop.classList.remove('hidden');
+    window.dispatchEvent(new CustomEvent('pt:inspect', { detail: { z: el.z } }));
   }
 
   function openMistakesModal() {
@@ -1715,16 +1724,29 @@
     });
 
     const isStudy = newMode === 'study';
-    dom.playControls.classList.toggle('hidden', isStudy);
+    const isBoardMode = newMode === 'live' || newMode === 'exam' || newMode === 'study';
+    const controlStrip = document.querySelector('.control-strip');
+
+    if (controlStrip) controlStrip.classList.toggle('hidden', !isBoardMode);
+    if (dom.boardWrapper) dom.boardWrapper.classList.toggle('hidden', !isBoardMode);
+
+    dom.playControls.classList.toggle('hidden', isStudy || !isBoardMode);
     dom.studyControls.classList.toggle('hidden', !isStudy);
-    dom.btnHint.classList.toggle('hidden', isStudy);
+    dom.btnHint.classList.toggle('hidden', isStudy || !isBoardMode);
+
+    if (!isBoardMode) {
+      stopTimer();
+      dom.trayDock.classList.add('hidden');
+      window.dispatchEvent(new CustomEvent('pt:modechange', { detail: { mode: newMode } }));
+      return;
+    }
 
     if (isStudy) {
       stopTimer();
       setFeedback(
         'neutral',
-        'STUDY LAB',
-        'Click any element to inspect its animated Bohr electron shells, or drag the Temperature slider to see melting & boiling live!'
+        'STUDY & TRENDS',
+        'Click any element for 3D Bohr shells & Head-to-Head Compare, or choose a Periodic Trend Heatmap!'
       );
     } else if (newMode === 'exam') {
       setFeedback(
@@ -1742,6 +1764,7 @@
 
     renderBoard();
     renderTray();
+    window.dispatchEvent(new CustomEvent('pt:modechange', { detail: { mode: newMode } }));
   }
 
   function toggleCategoryFilter(categoryId) {
@@ -2135,6 +2158,12 @@
     renderBoard();
     renderTray();
     registerServiceWorker();
+    window.ArenaApp = {
+      openInspector,
+      setMode,
+      renderBoard,
+      getState: () => state
+    };
   }
 
   init();

@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Periodic Table Arena — Drag &amp; Drop Chemistry Lab</title>
+  <title>Periodic Lab PRO — 118 Elements Arena, Quiz Battle &amp; Compound Lab</title>
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
@@ -27,8 +27,38 @@
     })();
   </script>
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pro-lab.css" />
 </head>
 <body>
+  <!-- Cinematic Pro Boot Splash Screen (auto-fades in <0.9s or tap to skip) -->
+  <div class="app-splash" id="appSplash" role="presentation">
+    <div class="splash-atom-wrap" aria-hidden="true">
+      <svg width="96" height="96" viewBox="0 0 120 120">
+        <g class="splash-ring r1">
+          <ellipse cx="60" cy="60" rx="50" ry="20" fill="none" stroke="#38bdf8" stroke-width="2.2" opacity="0.85" />
+          <circle cx="110" cy="60" r="4" fill="#38bdf8" />
+        </g>
+        <g class="splash-ring r2" transform="rotate(60 60 60)">
+          <ellipse cx="60" cy="60" rx="50" ry="20" fill="none" stroke="#10b981" stroke-width="2.2" opacity="0.85" />
+          <circle cx="10" cy="60" r="4" fill="#10b981" />
+        </g>
+        <g class="splash-ring r3" transform="rotate(-60 60 60)">
+          <ellipse cx="60" cy="60" rx="50" ry="20" fill="none" stroke="#f59e0b" stroke-width="2.2" opacity="0.85" />
+          <circle cx="110" cy="60" r="4" fill="#f59e0b" />
+        </g>
+        <circle cx="60" cy="60" r="12" fill="#38bdf8" />
+        <text x="60" y="64" text-anchor="middle" font-size="10" font-weight="900" fill="#090e1a">Pt</text>
+      </svg>
+    </div>
+    <span class="splash-badge">⚡ PRO EDITION v2.0 · OFFLINE READY</span>
+    <h2 class="splash-title">Periodic Table <span>Arena PRO</span></h2>
+    <p class="splash-sub">118 Atoms · Desi Mnemonics · Trends Heatmap · JEE/NEET Quiz · Compound Lab</p>
+    <div class="splash-progress-track"><div class="splash-progress-fill"></div></div>
+  </div>
+
+  <!-- Floating XP / Achievement Notification Toast -->
+  <div class="pro-xp-toast" id="proXpToast" role="status" aria-live="polite"></div>
+
   <div class="app-shell">
     <!-- Top Navigation & Live Scoreboard -->
     <header class="topbar">
@@ -38,26 +68,36 @@
           <span class="atom-sym">Pt</span>
         </div>
         <div class="brand-copy">
-          <h1>Periodic Table <span>Arena</span></h1>
-          <p>Drag &amp; Drop Blank Periodic Table · Sahi / Galat Lab</p>
+          <h1>Periodic <span>Lab</span> <em class="pro-tag-mini">PRO</em></h1>
+          <p>118 Elements · Quiz Battle · Trends &amp; Compound Lab</p>
         </div>
       </div>
 
-      <!-- Mode Switcher -->
-      <nav class="mode-tabs" role="tablist" aria-label="Game Mode">
-        <button class="mode-tab active" data-mode="live" role="tab" aria-selected="true" title="Check Sahi or Galat immediately on every drop">
-          <span class="dot live-dot"></span> Live Check
+      <!-- 5-Module Pro Mode Switcher -->
+      <nav class="mode-tabs" role="tablist" aria-label="App Modules">
+        <button class="mode-tab active" data-mode="live" role="tab" aria-selected="true" title="Drag &amp; Drop Blank Periodic Table with live Sahi/Galat check">
+          <span class="dot live-dot"></span> Live Arena
         </button>
-        <button class="mode-tab" data-mode="exam" role="tab" aria-selected="false" title="Fill blank table freely first, then check all Sahi &amp; Galat together">
+        <button class="mode-tab" data-mode="exam" role="tab" aria-selected="false" title="Fill blank table freely first, then grade complete Exam Sheet">
           <span class="dot exam-dot"></span> Exam Sheet
         </button>
-        <button class="mode-tab" data-mode="study" role="tab" aria-selected="false" title="Explore complete Periodic Table, states of matter &amp; Bohr models">
-          <span class="dot study-dot"></span> Study Reference
+        <button class="mode-tab" data-mode="study" role="tab" aria-selected="false" title="3D Bohr Models, Temperature Simulator &amp; Periodic Trends Heatmaps">
+          <span class="dot study-dot"></span> Study &amp; Trends
+        </button>
+        <button class="mode-tab" data-mode="quiz" role="tab" aria-selected="false" title="Rapid-fire JEE / NEET / NCERT Chemistry MCQ Battle">
+          <span class="dot quiz-dot"></span> Quiz Battle
+        </button>
+        <button class="mode-tab" data-mode="lab" role="tab" aria-selected="false" title="Chemical Formula Molar Mass Calculator &amp; Famous NCERT Compounds Lab">
+          <span class="dot lab-dot"></span> Compound Lab
         </button>
       </nav>
 
-      <!-- Live Telemetry & Settings -->
+      <!-- Live Telemetry, Rank XP & Settings -->
       <div class="stats-bar">
+        <button class="xp-profile-btn" id="btnProfileXP" type="button" title="View Scientist Rank, XP &amp; Achievements">
+          <span>🧪</span><span class="xp-lvl">Lv.1</span><span>0 XP</span>
+        </button>
+
         <div class="stat-pill correct-pill" title="Correct placements (Sahi)">
           <span class="stat-icon">✓</span>
           <span class="stat-label">Sahi</span>
@@ -98,7 +138,7 @@
         <button class="icon-btn mobile-only-btn" id="btnMobileFilters" type="button" title="Open Scope &amp; Clue Settings" aria-label="Toggle Settings">
           ⚙️
         </button>
-        <button class="icon-btn" id="btnFullscreen" type="button" title="Fullscreen / Landscape App Mode" aria-label="Toggle Fullscreen">
+        <button class="icon-btn" id="btnFullscreen" type="button" title="Fullscreen + Landscape Mode" aria-label="Toggle Fullscreen">
           ⛶
         </button>
         <button class="icon-btn" id="btnSound" type="button" title="Toggle Sound &amp; Haptics" aria-label="Toggle Sound Effects">
@@ -146,14 +186,31 @@
         </label>
       </div>
 
-      <!-- Study Mode Controls (Shown only in Study Mode) -->
+      <!-- Study & Periodic Trends Controls -->
       <div class="controls-left hidden" id="studyControls">
         <div class="block-pills" role="group" aria-label="Filter by orbital block">
-          <button type="button" class="block-pill active" data-block="all">All Blocks</button>
-          <button type="button" class="block-pill" data-block="s">s-block</button>
-          <button type="button" class="block-pill" data-block="p">p-block</button>
-          <button type="button" class="block-pill" data-block="d">d-block</button>
-          <button type="button" class="block-pill" data-block="f">f-block</button>
+          <button type="button" class="block-pill active" data-block="all">All</button>
+          <button type="button" class="block-pill" data-block="s">s</button>
+          <button type="button" class="block-pill" data-block="p">p</button>
+          <button type="button" class="block-pill" data-block="d">d</button>
+          <button type="button" class="block-pill" data-block="f">f</button>
+        </div>
+
+        <label class="compact-select">
+          <span>Heatmap</span>
+          <select id="trendSelect">
+            <option value="none">🎨 Category Colors</option>
+            <option value="en">🧲 Electronegativity</option>
+            <option value="radius">📏 Atomic Radius (pm)</option>
+            <option value="ie">⚡ Ionization Energy</option>
+            <option value="melt">🔥 Melting Point (K)</option>
+          </select>
+        </label>
+
+        <div class="trend-legend-bar hidden" id="trendLegendBar">
+          <span id="trendMinLabel">Low</span>
+          <div class="trend-ramp"></div>
+          <span id="trendMaxLabel">High</span>
         </div>
 
         <div class="temp-control">
@@ -193,10 +250,106 @@
     <main class="board-wrapper">
       <div class="periodic-scroll">
         <div class="periodic-grid" id="periodicGrid" aria-label="Periodic Table of Elements">
-          <!-- Dynamically populated by js/app.js with Group/Period axes, Valley HUD Legend, and 118 element slots -->
+          <!-- Dynamically populated by js/app.js -->
         </div>
       </div>
     </main>
+
+    <!-- PRO MODULE 4: Rapid Quiz Battle Stage (JEE / NEET / NCERT) -->
+    <section class="pro-stage hidden" id="quizStageView" aria-label="Chemistry Quiz Battle Arena">
+      <div class="quiz-shell">
+        <div class="quiz-topbar">
+          <div class="quiz-cats" role="tablist">
+            <button type="button" class="block-pill active" data-quiz-cat="mixed">🔥 Mixed Pro</button>
+            <button type="button" class="block-pill" data-quiz-cat="atomic">⚛️ Atomic # &amp; Latin</button>
+            <button type="button" class="block-pill" data-quiz-cat="config">🧬 Config &amp; Exceptions</button>
+            <button type="button" class="block-pill" data-quiz-cat="group">🧭 Group &amp; Period</button>
+            <button type="button" class="block-pill" data-quiz-cat="trends">📈 JEE/NEET Trends</button>
+          </div>
+
+          <div class="quiz-stats-row">
+            <button type="button" class="chip-btn active" id="btnQuizTimerMode">⏱️ 15s Blitz: ON</button>
+            <span class="quiz-pill">Score: <strong id="quizScoreVal">0</strong></span>
+            <span class="quiz-pill">Streak: <strong id="quizStreakVal">0🔥</strong></span>
+            <span class="quiz-pill">Accuracy: <strong id="quizAccVal">0/0 (100%)</strong></span>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-timer-track" id="quizTimerTrack">
+            <div class="quiz-timer-fill" id="quizTimerFill"></div>
+          </div>
+
+          <div class="quiz-q-header">
+            <h2 class="quiz-question-text" id="quizQuestionText">Loading Chemistry Battle Question...</h2>
+            <div class="quiz-lifelines">
+              <button type="button" class="chip-btn" id="btnQuizSpeak" title="Listen to question aloud">🔊</button>
+              <button type="button" class="chip-btn" id="btnQuiz5050" title="Remove 2 wrong options">✂️ 50:50</button>
+              <button type="button" class="chip-btn" id="btnQuizHint" title="Reveal smart clue / mnemonic">💡 Clue</button>
+            </div>
+          </div>
+
+          <div class="quiz-hint-box hidden" id="quizHintBox"></div>
+          <div class="quiz-options-grid" id="quizOptionsGrid"></div>
+
+          <div class="quiz-explain-bar hidden" id="quizExplainBar">
+            <div id="quizExplainText" style="flex:1;min-width:220px"></div>
+            <button type="button" class="action-btn check-btn" id="btnNextQuizQ">Next Question →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRO MODULE 5: Molar Mass & Famous NCERT Compounds Lab -->
+    <section class="pro-stage hidden" id="labStageView" aria-label="Molar Mass and Compound Lab">
+      <div class="lab-grid">
+        <div class="lab-panel">
+          <h3>
+            <span>⚗️ Live Molar Mass &amp; Composition Analyzer</span>
+            <small style="color:var(--text-secondary);font-weight:600">Supports (), [] &amp; .5H2O hydrates</small>
+          </h3>
+
+          <form class="formula-input-row" id="labFormulaForm" autocomplete="off">
+            <input
+              type="text"
+              class="formula-field mono"
+              id="labFormulaInput"
+              value="CuSO4.5H2O"
+              placeholder="e.g. H2SO4, CuSO4.5H2O, K4[Fe(CN)6], C6H12O6"
+            />
+            <button type="submit" class="action-btn check-btn">Analyze ⚛️</button>
+          </form>
+
+          <div class="element-keypad" id="labKeypad" aria-label="Quick element formula buttons"></div>
+          <div id="labResultContainer"></div>
+        </div>
+
+        <div class="lab-panel">
+          <h3>
+            <span>📚 Famous NCERT / JEE / NEET Compounds (24)</span>
+          </h3>
+
+          <input
+            type="search"
+            class="formula-field"
+            id="labCompoundSearch"
+            style="font-size:13px;padding:7px 11px"
+            placeholder="Search Baking Soda, Alum, Mohr Salt, KMnO4, Cisplatin..."
+          />
+
+          <div class="block-pills" style="flex-wrap:wrap">
+            <button type="button" class="block-pill active" data-comp-tag="All">All</button>
+            <button type="button" class="block-pill" data-comp-tag="Everyday">Everyday</button>
+            <button type="button" class="block-pill" data-comp-tag="Industrial">Industrial</button>
+            <button type="button" class="block-pill" data-comp-tag="Lab Reagent">Reagents</button>
+            <button type="button" class="block-pill" data-comp-tag="Hydrate Salt">Hydrates</button>
+            <button type="button" class="block-pill" data-comp-tag="Coordination">Complexes</button>
+          </div>
+
+          <div class="compounds-list" id="labCompoundsList"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- Bottom Draggable Element Dock -->
     <section class="tray-dock" id="trayDock" aria-label="Draggable Elements Tray">
@@ -233,13 +386,11 @@
         </div>
       </div>
 
-      <div class="tray-tiles" id="trayTiles">
-        <!-- Draggable element cards rendered here -->
-      </div>
+      <div class="tray-tiles" id="trayTiles"></div>
     </section>
   </div>
 
-  <!-- Quick Slot Input Popover (when clicking a blank cell directly) -->
+  <!-- Quick Slot Input Popover -->
   <div class="slot-quick-input hidden" id="slotQuickModal">
     <form id="slotQuickForm" autocomplete="off">
       <div class="quick-header">
@@ -254,7 +405,7 @@
     </form>
   </div>
 
-  <!-- Element Inspector Modal (with SVG Bohr Electron Model) -->
+  <!-- Enhanced Pro Element Inspector Modal (Bohr Shells + Audio Voice + Side-by-Side Comparator) -->
   <div class="modal-backdrop hidden" id="inspectorBackdrop" role="dialog" aria-modal="true" aria-labelledby="inspName">
     <div class="modal-card inspector-card">
       <button type="button" class="modal-close" id="btnCloseInspector" aria-label="Close Inspector">×</button>
@@ -270,8 +421,11 @@
         </div>
 
         <div class="details-panel">
-          <div class="cat-tag" id="inspCategory">Alkali Metal</div>
-          <h2 id="inspName">Sodium</h2>
+          <div class="insp-title-row">
+            <div class="cat-tag" id="inspCategory">Alkali Metal</div>
+            <button type="button" class="chip-btn" id="btnSpeakElement" title="Pronounce element details aloud">🔊 Speak</button>
+          </div>
+          <h2 id="inspName" style="margin:6px 0">Sodium</h2>
           <p class="insp-fact" id="inspFact"></p>
           <div class="insp-mnem-box hidden" id="inspMnemonic"></div>
 
@@ -284,13 +438,51 @@
             <div><dt>Standard State</dt><dd id="specPhase">Solid</dd></div>
             <div><dt>Melting / Boiling</dt><dd id="specMeltBoil">371 K / 1156 K</dd></div>
             <div><dt>Electronegativity</dt><dd id="specEN">0.93 · Discovered 1807</dd></div>
+            <div><dt>Atomic Radius</dt><dd id="specRadius">190 pm</dd></div>
+            <div><dt>1st Ionization</dt><dd id="specIonization">496 kJ/mol</dd></div>
+            <div><dt>Oxidation States</dt><dd id="specOxidation">+1</dd></div>
           </dl>
+
+          <div class="compare-section">
+            <div class="compare-header-row">
+              <strong style="font-size:12.5px">⚖️ Head-to-Head Compare:</strong>
+              <select class="compare-select" id="compareElementSelect" aria-label="Compare with another element"></select>
+            </div>
+            <div class="compare-bars" id="compareBarsContainer"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Mistake History Modal ("Galat Sahi Log") -->
+  <!-- Scientist Profile, Ranks & 12 Achievements Modal -->
+  <div class="modal-backdrop hidden" id="profileBackdrop" role="dialog" aria-modal="true" aria-labelledby="profRankTitle">
+    <div class="modal-card profile-card">
+      <button type="button" class="modal-close" id="btnCloseProfile" aria-label="Close Profile">×</button>
+      <div class="profile-hero">
+        <div style="display:flex;align-items:center;gap:12px;width:100%">
+          <span id="profRankIcon" style="font-size:38px">🧪</span>
+          <div style="flex:1">
+            <h2 id="profRankTitle" style="margin:0;font-size:19px">Lv.1 · Lab Cadet</h2>
+            <small id="profXpSub" style="color:var(--text-secondary)">0 / 150 XP</small>
+            <div class="profile-xp-bar"><div class="profile-xp-fill" id="profXpFill" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-stats-grid">
+        <div class="p-stat-box"><strong id="profSolvedStat">0</strong><span>Atoms Placed</span></div>
+        <div class="p-stat-box"><strong id="profQuizStat">0</strong><span>Quiz Sahi</span></div>
+        <div class="p-stat-box"><strong id="profStreakStat">0x</strong><span>Best Streak</span></div>
+        <div class="p-stat-box"><strong id="profBadgesStat">0/12</strong><span>Trophies Won</span></div>
+      </div>
+
+      <h3 style="margin:0 0 8px;font-size:14px">🏆 Unlockable Chemistry Trophies</h3>
+      <div class="badges-grid" id="profBadgesGrid"></div>
+    </div>
+  </div>
+
+  <!-- Mistake History Modal -->
   <div class="modal-backdrop hidden" id="mistakesBackdrop" role="dialog" aria-modal="true" aria-labelledby="mistakesTitle">
     <div class="modal-card mistakes-card">
       <button type="button" class="modal-close" id="btnCloseMistakes" aria-label="Close Mistake Log">×</button>
@@ -353,32 +545,34 @@
     <div class="modal-card install-card">
       <button type="button" class="modal-close" id="btnCloseInstall" aria-label="Close Download Menu">×</button>
       <div class="install-hero">
-        <img src="icons/icon-192.png" alt="Periodic Lab Icon" width="56" height="56" class="install-app-logo" />
+        <img src="icons/icon-192.png" alt="Periodic Lab PRO Icon" width="56" height="56" class="install-app-logo" />
         <div>
-          <h2 id="installTitle" style="margin:0;font-size:20px">📲 Download Periodic Table Arena</h2>
-          <p class="modal-sub" style="margin:3px 0 0">Apne Android Phone, Tablet ya PC par Offline App ki tarah install karein!</p>
+          <h2 id="installTitle" style="margin:0;font-size:20px">📲 Download Periodic Lab PRO (v2.0)</h2>
+          <p class="modal-sub" style="margin:3px 0 0">Full 5-Module Offline App — Android Phone, Tablet ya PC par install karein!</p>
         </div>
       </div>
 
+      <div style="margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border-subtle);max-height:135px">
+        <img src="icons/feature-banner.png" alt="Periodic Lab PRO Banner" style="width:100%;height:135px;object-fit:cover;display:block" loading="lazy" />
+      </div>
+
       <div class="install-options-grid">
-        <!-- Option 1: Direct Android APK Download -->
         <div class="install-opt-box apk-box">
-          <span class="install-tag apk-tag">ANDROID .APK FILE</span>
+          <span class="install-tag apk-tag">ANDROID .APK v2.0 PRO</span>
           <h3>📦 Download Android APK</h3>
-          <p>Seedha standalone <strong>.apk file</strong> download karke install karein — bina internet ke <strong>100% Offline</strong> chalta hai!</p>
+          <p>Standalone <strong>Periodic Lab PRO v2.0 .apk</strong> install karein — Quiz, Trends, Compound Lab &amp; 118 Atoms <strong>100% Offline</strong>!</p>
           <a href="download/Periodic-Table-Arena.apk" download="Periodic-Table-Arena.apk" class="action-btn check-btn install-full-btn" id="linkDownloadApk">
-            ⬇ Download APK (Android)
+            ⬇ Download PRO APK (Android)
           </a>
           <small class="install-note">Tip: Install karte waqt Android "Unknown App / Play Protect" puche toh <strong>"Install anyway"</strong> tap karein.</small>
         </div>
 
-        <!-- Option 2: Native One-Tap PWA App Install -->
         <div class="install-opt-box pwa-box">
           <span class="install-tag pwa-tag">CHROME / iOS / PC PWA</span>
           <h3>⚡ Instant PWA Install</h3>
           <p>Zero security warning ke saath 1-tap mein Home Screen &amp; App Drawer par native WebApp install karein!</p>
           <button type="button" class="action-btn ghost-btn install-full-btn" id="btnTriggerPwa" style="border-color:var(--accent);color:var(--accent)">
-            📲 Install PWA App Now
+            📲 Install PRO PWA Now
           </button>
           <small class="install-note" id="pwaStatusNote">Works offline on Android Chrome, Edge, iPad &amp; Desktop.</small>
         </div>
@@ -387,8 +581,10 @@
   </div>
 
   <script src="js/elements-data.js"></script>
+  <script src="js/chemistry-pro-data.js"></script>
   <script src="js/mnemonics-data.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/pro-lab.js"></script>
 </body>
 </html>

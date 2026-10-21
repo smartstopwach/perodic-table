@@ -25,7 +25,7 @@ from cryptography.hazmat.primitives.serialization import pkcs7
 from cryptography.x509.oid import NameOID
 
 PACKAGE_NAME = "com.periodictable.arena"
-APP_LABEL = "Periodic Lab"
+APP_LABEL = "Periodic Lab PRO"
 ACTIVITY_NAME = "com.periodictable.arena.MainActivity"
 ICON_RES_ID = 0x7F010000
 
@@ -101,7 +101,7 @@ def build_binary_axml():
         "manifest",
         "package",
         PACKAGE_NAME,
-        "1.0.0",
+        "2.0.0",
         "uses-sdk",
         "application",
         APP_LABEL,
@@ -219,8 +219,8 @@ def build_binary_axml():
 
     # Note: attributes within an element should be ordered by resource ID where applicable
     manifest_attrs = [
-        make_attr(ANDROID_NS, "versionCode", TYPE_INT_DEC, 1),
-        make_attr(ANDROID_NS, "versionName", TYPE_STRING, sidx["1.0.0"], "1.0.0"),
+        make_attr(ANDROID_NS, "versionCode", TYPE_INT_DEC, 2),
+        make_attr(ANDROID_NS, "versionName", TYPE_STRING, sidx["2.0.0"], "2.0.0"),
         make_attr(None, "package", TYPE_STRING, sidx[PACKAGE_NAME], PACKAGE_NAME),
     ]
 
@@ -958,21 +958,26 @@ def build_apk(output_path):
     raw_files = [
         ("AndroidManifest.xml", build_binary_axml(), True),
         ("resources.arsc", build_resources_arsc(), False),  # MUST BE UNCOMPRESSED & 4-BYTE ALIGNED!
-        ("res/drawable/icon.png", open(os.path.join(root, "icons/icon-192.png"), "rb").read(), False),
+        ("res/drawable/icon.png", open(os.path.join(root, "icons/icon-512.png"), "rb").read(), False),
         ("classes.dex", build_classes_dex(), True),
     ]
 
     web_assets = [
         "index.html",
+        "privacy-policy.html",
         "manifest.webmanifest",
         "css/style.css",
+        "css/pro-lab.css",
         "js/elements-data.js",
+        "js/chemistry-pro-data.js",
         "js/mnemonics-data.js",
         "js/sound.js",
         "js/app.js",
+        "js/pro-lab.js",
         "icons/icon.svg",
         "icons/icon-192.png",
         "icons/icon-512.png",
+        "icons/feature-banner.png",
     ]
     for rel in web_assets:
         full = os.path.join(root, rel)
