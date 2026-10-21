@@ -38,12 +38,12 @@
 }
 
 [data-theme="light"] {
-  --bg-app: #f1f5f9;
+  --bg-app: #edf2f7;
   --bg-surface: #ffffff;
-  --bg-elevated: #f8fafc;
-  --bg-slot: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-slot: #f8fafc;
   --bg-slot-hover: #e0f2fe;
-  --bg-slot-locked: rgba(226, 232, 240, 0.55);
+  --bg-slot-locked: rgba(203, 213, 225, 0.55);
   --bg-tile: #ffffff;
   --bg-tile-hover: #f0f9ff;
 
@@ -51,23 +51,23 @@
   --text-secondary: #475569;
   --text-muted: #64748b;
 
-  --border-subtle: rgba(15, 23, 42, 0.1);
-  --border-slot: rgba(15, 23, 42, 0.22);
-  --border-strong: rgba(15, 23, 42, 0.38);
+  --border-subtle: rgba(15, 23, 42, 0.13);
+  --border-slot: #cbd5e1;
+  --border-strong: #94a3b8;
 
   --accent: #0284c7;
-  --accent-soft: rgba(2, 132, 199, 0.13);
+  --accent-soft: rgba(2, 132, 199, 0.14);
   --correct: #059669;
-  --correct-soft: rgba(5, 150, 105, 0.15);
+  --correct-soft: rgba(5, 150, 105, 0.14);
   --wrong: #dc2626;
-  --wrong-soft: rgba(220, 38, 38, 0.15);
-  --warning: #d97706;
-  --warning-soft: rgba(217, 119, 6, 0.16);
+  --wrong-soft: rgba(220, 38, 38, 0.13);
+  --warning: #b45309;
+  --warning-soft: rgba(245, 158, 11, 0.16);
   --exam: #4f46e5;
-  --exam-soft: rgba(79, 70, 229, 0.14);
+  --exam-soft: rgba(79, 70, 229, 0.13);
 
-  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.18);
+  --shadow-sm: 0 1px 4px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 18px 42px rgba(15, 23, 42, 0.18);
 }
 
 :root {
@@ -364,20 +364,21 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 5px 16px;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 5px 12px;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  min-height: 40px;
+  min-height: 38px;
 }
 
 .controls-left,
 .controls-right {
   display: flex;
   align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .compact-select {
@@ -456,14 +457,14 @@ textarea {
 
 /* Live Sahi / Galat Feedback Banner */
 .feedback-banner {
-  flex: 1;
+  flex: 1 1 250px;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 11px;
+  gap: 7px;
+  padding: 4px 10px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11.5px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   transition: background 0.2s ease, border-color 0.2s ease;
@@ -575,7 +576,7 @@ textarea {
   flex: 1 0 auto;
   display: block;
   width: 100%;
-  padding: 8px 14px 10px;
+  padding: 6px 12px 8px;
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
@@ -589,16 +590,16 @@ textarea {
 
 .periodic-grid {
   width: 100%;
-  max-width: 1460px;
+  max-width: 1480px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 24px repeat(18, minmax(44px, 1fr));
+  grid-template-columns: 20px repeat(18, minmax(35px, 1fr));
   grid-template-rows:
-    18px
-    repeat(7, minmax(38px, 46px))
-    6px
-    repeat(2, minmax(38px, 46px));
-  gap: 3px;
+    16px
+    repeat(7, minmax(36px, 42px))
+    5px
+    repeat(2, minmax(36px, 42px));
+  gap: 2.5px;
   user-select: none;
   touch-action: pan-x pan-y;
 }
@@ -964,12 +965,13 @@ textarea {
   bottom: 0;
   z-index: 25;
   flex: 0 0 auto;
-  height: 185px;
+  height: 136px;
   display: flex;
   flex-direction: column;
   background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
-  padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  padding: 5px 12px calc(6px + env(safe-area-inset-bottom, 0px));
 }
 
 .tray-dock.collapsed {
@@ -1247,11 +1249,16 @@ textarea {
 }
 
 /* Element Inspector Modal */
+.inspector-card {
+  max-width: 760px;
+  padding: 18px 20px;
+}
+
 .inspector-grid {
   display: grid;
-  grid-template-columns: 230px 1fr;
-  gap: 22px;
-  align-items: center;
+  grid-template-columns: 210px 1fr;
+  gap: 18px;
+  align-items: start;
 }
 
 .bohr-panel {
@@ -1353,8 +1360,8 @@ textarea {
 .specs-grid {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .specs-grid div {

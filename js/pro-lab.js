@@ -51,15 +51,23 @@
   function initSplash() {
     const splash = document.getElementById('appSplash');
     if (!splash) return;
+    try {
+      if (sessionStorage.getItem('pt_pro_booted') === '1') {
+        splash.remove();
+        return;
+      }
+      sessionStorage.setItem('pt_pro_booted', '1');
+    } catch (_) {}
+
     const dismiss = () => {
       if (splash.classList.contains('splash-hide')) return;
       splash.classList.add('splash-hide');
       setTimeout(() => {
         if (splash.parentNode) splash.remove();
-      }, 420);
+      }, 360);
     };
     splash.addEventListener('click', dismiss);
-    setTimeout(dismiss, 880);
+    setTimeout(dismiss, 520);
   }
 
   let toastTimer = null;
