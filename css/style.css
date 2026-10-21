@@ -140,29 +140,31 @@ textarea {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Top Bar */
+/* Top Bar — Ultra-compact single-row Pro header */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 6px 16px;
+  gap: 8px;
+  padding: 4px 12px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  min-height: 50px;
+  min-height: 42px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .brand-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: linear-gradient(135deg, var(--accent-soft), rgba(16, 185, 129, 0.2));
   border: 1px solid var(--accent);
   display: flex;
@@ -174,22 +176,32 @@ textarea {
 }
 
 .brand-icon .atom-z {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--text-secondary);
   font-weight: 700;
 }
 
 .brand-icon .atom-sym {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--accent);
 }
 
+.brand-copy {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .brand-copy h1 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .brand-copy h1 span {
@@ -197,36 +209,43 @@ textarea {
 }
 
 .brand-copy p {
-  margin: 1px 0 0;
-  font-size: 11px;
-  color: var(--text-secondary);
+  display: none;
 }
 
 /* Mode Tabs */
 .mode-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   background: var(--bg-app);
-  padding: 3px;
-  border-radius: 10px;
+  padding: 2.5px;
+  border-radius: 9px;
   border: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mode-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .mode-tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  font-size: 12px;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 11.5px;
   font-weight: 600;
   border: none;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.16s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mode-tab:hover {
@@ -253,6 +272,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .stat-pill {
