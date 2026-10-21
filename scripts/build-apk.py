@@ -226,7 +226,7 @@ def build_binary_axml():
 
     sdk_attrs = [
         make_attr(ANDROID_NS, "minSdkVersion", TYPE_INT_DEC, 21),
-        make_attr(ANDROID_NS, "targetSdkVersion", TYPE_INT_DEC, 33),
+        make_attr(ANDROID_NS, "targetSdkVersion", TYPE_INT_DEC, 35),
     ]
 
     app_attrs = [
@@ -808,10 +808,20 @@ def build_classes_dex():
 # 5. ZipAlign (4-Byte Uncompressed Alignment) + JAR v1 & APK Signature Scheme v2
 # ============================================================================
 
-def generate_signing_identity():
+def generate_signing_identity(keystore_dir=None):
+    key_dir = keystore_dir or os.path.expanduser("~/.periodic-table-keystore")
+    os.makedirs(key_dir, exist_ok=True)
+    key_path = os.path.join(key_dir, "release-key.pem")
+    cert_path = os.path.join(key_dir, "release-cert.pem")
+
+    if os.path.exists(key_path) and os.path.exists(cert_path):
+        key = serialization.load_pem_private_key(open(key_path, "rb").read(), password=None)
+        cert = x509.load_pem_x509_certificate(open(cert_path, "rb").read())
+        return key, cert
+
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, "Periodic Table Arena Dev"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "Periodic Table Arena Release"),
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Periodic Table Lab"),
         x509.NameAttribute(NameOID.COUNTRY_NAME, "IN"),
     ])
@@ -823,9 +833,19 @@ def generate_signing_identity():
         .public_key(key.public_key())
         .serial_number(x509.random_serial_number())
         .not_valid_before(now)
-        .not_valid_after(now + datetime.timedelta(days=365 * 25))
+        .not_valid_after(now + datetime.timedelta(days=365 * 40))
         .sign(key, hashes.SHA256())
     )
+    with open(key_path, "wb") as kf:
+        kf.write(
+            key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.TraditionalOpenSSL,
+                serialization.NoEncryption(),
+            )
+        )
+    with open(cert_path, "wb") as cf:
+        cf.write(cert.public_bytes(serialization.Encoding.PEM))
     return key, cert
 
 
