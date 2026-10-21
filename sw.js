@@ -1,5 +1,5 @@
 /* Periodic Lab PRO v2.0 — Offline-First PWA Service Worker */
-const CACHE_NAME = 'periodic-table-arena-pro-v4';
+const CACHE_NAME = 'periodic-table-arena-pro-v5';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
